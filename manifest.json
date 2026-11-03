@@ -1,0 +1,12 @@
+{
+  "name": "JVM Foundation Attendance",
+  "short_name": "JVM Attendance",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#0c3472",
+  "icons": [
+    { "src": "logo.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+  ]
+}

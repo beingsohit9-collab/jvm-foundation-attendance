@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c3472">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JVM Attendance">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="icon" href="logo.png">
+<link rel="manifest" href="manifest.json">
 <title>Foundation Attendance</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&display=swap">
@@ -88,6 +94,9 @@ table.rt{border-collapse:separate;border-spacing:0;font-size:.8rem;min-width:100
 .sum{font-size:.95rem;margin:0}
 .sum b{font-variant-numeric:tabular-nums}
 .sample[hidden],.status[hidden]{display:none}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{width:60px;height:60px;object-fit:contain;flex:none}
+.brand div{min-width:0}
 .legend{font-size:.8rem;color:var(--muted);margin:6px 0 0}
 .note{background:var(--soft);border-radius:6px;padding:10px 12px;font-size:.88rem;color:var(--fg);margin:0}
 details.edit textarea{min-height:90px;font-size:14px}
@@ -97,9 +106,12 @@ details.edit textarea{min-height:90px;font-size:14px}
 </head>
 <body>
 <div class="wrap">
-<header>
-  <h1>Foundation Attendance</h1>
-  <p>JVM CBSE &amp; Foundation, Murud. Mark daily absentees, send the WhatsApp message, and download the monthly register.</p>
+<header class="brand">
+  <img src="logo.png" alt="JVM logo" onerror="this.remove()">
+  <div>
+    <h1>Foundation Attendance</h1>
+    <p>JVM CBSE &amp; Foundation, Murud. Mark daily absentees, send the WhatsApp message, and download the monthly register.</p>
+  </div>
 </header>
 
 <div class="views" role="tablist">
@@ -141,6 +153,13 @@ details.edit textarea{min-height:90px;font-size:14px}
 
   <button class="btn primary" id="save" type="button" style="padding:13px 14px;font-size:1.05rem">Save attendance</button>
   <p class="toast" id="toastS" role="status" style="margin-top:-10px"></p>
+  <div id="delRow" hidden>
+    <p class="hint" style="margin:0 0 6px">Saved by mistake, for example on a holiday? Delete the record below. It then no longer counts as a day held in the monthly report.</p>
+    <div class="row2">
+      <button class="btn" id="delOne" type="button"></button>
+      <button class="btn" id="delAll" type="button">Delete this date, all classes</button>
+    </div>
+  </div>
 
   <section aria-label="WhatsApp message">
     <p class="label">WhatsApp message</p>
@@ -275,6 +294,11 @@ function renderMark(opts={}){
   else if (saved){ st.textContent='Unsaved changes'; st.className='status todo'; }
   else { st.textContent='Not saved yet'; st.className='status todo'; }
   $('sample').hidden = !example;
+  const thisRec = !!rec[rk(date,cls)], anyRec = CLASSES.some(c => rec[rk(date,c)]);
+  $('delRow').hidden = !anyRec;
+  $('delOne').hidden = !thisRec; $('delOne').textContent = `Delete Class ${cls}, this date`;
+  $('delOne').dataset.label = $('delOne').textContent;
+  $('delAll').hidden = !anyRec;
   if (opts.writeInput) $('rolls').value = list.join(', ');
 }
 
@@ -367,6 +391,20 @@ $('save').addEventListener('click', () => {
   rec[rk(date,cls)] = [...absent].sort((a,b)=>a-b); saveRec(); example = false; renderMark();
   toast('toastS', `Saved: Class ${cls}, ${dateLabel(date)}.`);
 });
+function armed(btn, action){
+  btn.addEventListener('click', () => {
+    if (btn.dataset.armed){ clearTimeout(+btn.dataset.armed); delete btn.dataset.armed; btn.style.cssText=''; action(); return; }
+    const base = btn.id==='delOne' ? btn.dataset.label : 'Delete this date, all classes';
+    btn.textContent = 'Tap again to confirm delete'; btn.style.cssText='border-color:var(--red);color:var(--red)';
+    btn.dataset.armed = setTimeout(() => { delete btn.dataset.armed; btn.style.cssText=''; btn.textContent = base; }, 4000);
+  });
+}
+function afterDelete(msg){
+  saveRec(); example = false; absent = new Set(); invalid = []; manual = false; $('rolls').value = '';
+  renderMark(); toast('toastS', msg);
+}
+armed($('delOne'), () => { delete rec[rk(date,cls)]; afterDelete(`Deleted: Class ${cls}, ${dateLabel(date)}.`); });
+armed($('delAll'), () => { CLASSES.forEach(c => delete rec[rk(date,c)]); afterDelete(`Deleted all classes for ${dateLabel(date)}.`); });
 $('optClass').addEventListener('change', () => { manual = false; renderMark(); });
 $('msg').addEventListener('input', () => { manual = true; renderMark(); });
 $('regen').addEventListener('click', e => { e.preventDefault(); manual = false; renderMark(); });
