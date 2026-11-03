@@ -89,6 +89,8 @@ table.rt{border-collapse:separate;border-spacing:0;font-size:.8rem;min-width:100
 .rt .sun{background:var(--soft)}
 .rt td.a{background:var(--redsoft);color:var(--red);font-weight:800}
 .rt td.p{color:var(--muted)}
+.rt td.h{background:var(--soft);color:var(--blue);font-weight:600}
+.rt th.hol{background:var(--soft)}
 .rt .tot{font-weight:600}
 .rt tfoot td{font-weight:600;background:var(--soft)}
 .sum{font-size:.95rem;margin:0}
@@ -132,7 +134,10 @@ details.edit textarea{min-height:90px;font-size:14px}
       <button class="btn" id="today" type="button">Today</button>
     </div>
     <p class="hint" id="dateText"></p>
+    <button class="btn" id="holBtn" type="button" style="margin-top:8px;width:100%"></button>
+    <p class="note" id="holNote" style="margin-top:8px" hidden>Holiday. No attendance is taken on this date, and it is not counted as a day held in the monthly report.</p>
   </section>
+  <div id="dayBody" style="display:flex;flex-direction:column;gap:18px">
 
   <section aria-label="Absent roll numbers">
     <p class="label">Absent roll numbers<span class="sample" id="sample">Example</span></p>
@@ -172,6 +177,7 @@ details.edit textarea{min-height:90px;font-size:14px}
     </div>
     <p class="toast" id="toast" role="status"></p>
   </section>
+  </div>
 </div>
 
 <div id="repView" style="display:none;flex-direction:column;gap:14px">
@@ -181,7 +187,7 @@ details.edit textarea{min-height:90px;font-size:14px}
   </section>
   <p class="sum" id="sum"></p>
   <div class="tw"><table class="rt" id="rt"></table></div>
-  <p class="legend"><b>A</b> absent · <b>P</b> present · blank = attendance not saved that day · shaded columns are Sundays</p>
+  <p class="legend"><b>A</b> absent · <b>P</b> present · <b>H</b> holiday · blank = attendance not saved that day · shaded columns are Sundays</p>
   <div class="row2">
     <button class="btn primary" id="dlOne" type="button">Download this class (CSV)</button>
     <button class="btn" id="dlAll" type="button">Download all classes (CSV)</button>
@@ -299,6 +305,11 @@ function renderMark(opts={}){
   $('delOne').hidden = !thisRec; $('delOne').textContent = `Delete Class ${cls}, this date`;
   $('delOne').dataset.label = $('delOne').textContent;
   $('delAll').hidden = !anyRec;
+  const hol = !!rec[rk(date,'H')];
+  $('dayBody').style.display = hol ? 'none' : 'flex';
+  $('holNote').hidden = !hol;
+  if (!$('holBtn').dataset.armed) $('holBtn').textContent = hol ? 'Remove holiday for this date' : 'Mark this date as a holiday (all classes)';
+  if (hol){ st.textContent='Holiday'; st.className='status ok'; }
   if (opts.writeInput) $('rolls').value = list.join(', ');
 }
 
@@ -306,22 +317,22 @@ function renderMark(opts={}){
 function report(c, ym){
   const [y,m] = ym.split('-').map(Number), nd = new Date(y,m,0).getDate();
   const days = [];
-  for (let d=1; d<=nd; d++){ const k = rk(ym+'-'+pad(d), c); days.push({d, dow:new Date(y,m-1,d).getDay(), held: !!rec[k], abs: rec[k]||[]}); }
+  for (let d=1; d<=nd; d++){ const k = rk(ym+'-'+pad(d), c); const hol = !!rec[rk(ym+'-'+pad(d),'H')]; days.push({d, dow:new Date(y,m-1,d).getDay(), hol, held: !hol && !!rec[k], abs: rec[k]||[]}); }
   const held = days.filter(x=>x.held).length;
   const list = rows(c).map(([r,en]) => {
     let a = 0; days.forEach(x => { if (x.held && x.abs.includes(r)) a++; });
-    const p = held - a; return {r, en, a, p, pct: held ? p/held*100 : null, cells: days.map(x => !x.held ? '' : (x.abs.includes(r) ? 'A' : 'P'))};
+    const p = held - a; return {r, en, a, p, pct: held ? p/held*100 : null, cells: days.map(x => x.hol ? 'H' : !x.held ? '' : (x.abs.includes(r) ? 'A' : 'P'))};
   });
-  const dayAbs = days.map(x => x.held ? x.abs.length : '');
+  const dayAbs = days.map(x => x.hol ? 'H' : x.held ? x.abs.length : '');
   const avg = held ? list.reduce((s,x)=>s+x.pct,0)/list.length : null;
   return {y,m,nd,days,held,list,dayAbs,avg};
 }
 function renderReport(){
   const R = report(cls, month);
-  $('sum').innerHTML = `<b>Class ${cls}</b> · ${MONTHS[R.m-1]} ${R.y} · <b>${R.held}</b> day${R.held===1?'':'s'} recorded` + (R.avg==null ? ' · no attendance saved yet' : ` · average attendance <b>${R.avg.toFixed(1)}%</b>`);
-  let h = '<thead><tr><th class="nm">Roll · Student</th>' + R.days.map(x=>`<th class="${x.dow===0?'sun':''}">${x.d}<br><span style="font-weight:400;font-size:.7rem">${DOW[x.dow][0]}</span></th>`).join('') + '<th>Held</th><th>Pres.</th><th>Abs.</th><th>%</th></tr></thead><tbody>';
+  $('sum').innerHTML = `<b>Class ${cls}</b> · ${MONTHS[R.m-1]} ${R.y} · <b>${R.held}</b> day${R.held===1?'':'s'} recorded` + (R.days.some(x=>x.hol) ? ` · ${R.days.filter(x=>x.hol).length} holiday${R.days.filter(x=>x.hol).length===1?'':'s'}` : '') + (R.avg==null ? ' · no attendance saved yet' : ` · average attendance <b>${R.avg.toFixed(1)}%</b>`);
+  let h = '<thead><tr><th class="nm">Roll · Student</th>' + R.days.map(x=>`<th class="${x.hol?'hol':x.dow===0?'sun':''}">${x.d}<br><span style="font-weight:400;font-size:.7rem">${DOW[x.dow][0]}</span></th>`).join('') + '<th>Held</th><th>Pres.</th><th>Abs.</th><th>%</th></tr></thead><tbody>';
   R.list.forEach(s => {
-    h += `<tr><td class="nm">${s.r}. ${esc(s.en)}</td>` + s.cells.map((c,i)=>`<td class="${c==='A'?'a':c==='P'?'p':(R.days[i].dow===0?'sun':'')}">${c}</td>`).join('') +
+    h += `<tr><td class="nm">${s.r}. ${esc(s.en)}</td>` + s.cells.map((c,i)=>`<td class="${c==='A'?'a':c==='P'?'p':c==='H'?'h':(R.days[i].dow===0?'sun':'')}">${c}</td>`).join('') +
       `<td class="tot">${R.held}</td><td class="tot">${s.p}</td><td class="tot">${s.a}</td><td class="tot">${s.pct==null?'–':s.pct.toFixed(1)}</td></tr>`;
   });
   h += '</tbody><tfoot><tr><td class="nm" style="background:var(--soft)">Absent per day</td>' + R.dayAbs.map(v=>`<td>${v}</td>`).join('') + '<td></td><td></td><td></td><td></td></tr></tfoot>';
@@ -390,6 +401,20 @@ $('clear').addEventListener('click', () => { example = false; absent = new Set()
 $('save').addEventListener('click', () => {
   rec[rk(date,cls)] = [...absent].sort((a,b)=>a-b); saveRec(); example = false; renderMark();
   toast('toastS', `Saved: Class ${cls}, ${dateLabel(date)}.`);
+});
+$('holBtn').addEventListener('click', () => {
+  const b = $('holBtn'), key = rk(date,'H');
+  if (rec[key]){ delete rec[key]; saveRec(); renderMark(); toast('toastS','Holiday removed.'); return; }
+  const anyRec = CLASSES.some(c => rec[rk(date,c)]);
+  if (anyRec && !b.dataset.armed){
+    b.textContent = 'Tap again: this deletes the saved attendance for this date'; b.style.cssText='margin-top:8px;width:100%;border-color:var(--red);color:var(--red)';
+    b.dataset.armed = setTimeout(() => { delete b.dataset.armed; b.style.cssText='margin-top:8px;width:100%'; renderMark(); }, 5000);
+    return;
+  }
+  if (b.dataset.armed){ clearTimeout(+b.dataset.armed); delete b.dataset.armed; b.style.cssText='margin-top:8px;width:100%'; }
+  CLASSES.forEach(c => delete rec[rk(date,c)]); rec[key] = ['H']; saveRec();
+  example = false; absent = new Set(); invalid = []; manual = false; $('rolls').value = '';
+  renderMark(); toast('toastS','Marked as a holiday for all classes.');
 });
 function armed(btn, action){
   btn.addEventListener('click', () => {
