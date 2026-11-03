@@ -109,7 +109,7 @@ details.edit textarea{min-height:90px;font-size:14px}
 <body>
 <div class="wrap">
 <header class="brand">
-  <img src="logo.png" alt="JVM logo" onerror="this.remove()">
+  <img id="logo" src="logo.png?v=2" alt="JVM logo" data-try="logo.PNG|logo.jpg|logo.JPG|logo.jpeg|jvm%20logo.png|jvm%20logo.PNG">
   <div>
     <h1>Foundation Attendance</h1>
     <p>JVM CBSE &amp; Foundation, Murud. Mark daily absentees, send the WhatsApp message, and download the monthly register.</p>
@@ -473,6 +473,15 @@ $('bkMerge').addEventListener('click', () => {
   } catch(e){ toast('toast3','That is not a valid backup.'); }
 });
 
+// logo: try common file names so a different spelling still works
+(function(){
+  const L = $('logo'); if (!L) return;
+  const alts = (L.dataset.try || '').split('|').filter(Boolean);
+  const fail = () => { const n = alts.shift(); if (n) L.src = n; else L.remove(); };
+  L.addEventListener('error', fail);
+  L.addEventListener('load', () => { if (L.naturalWidth) document.querySelectorAll('link[rel="apple-touch-icon"],link[rel="icon"]').forEach(l => l.href = L.getAttribute('src')); });
+  if (L.complete && L.naturalWidth === 0) fail();
+})();
 // start: today's date, an example absence list (not saved until you tap Save)
 buildTabs(); buildGrid(); buildEdit();
 $('month').value = month;
