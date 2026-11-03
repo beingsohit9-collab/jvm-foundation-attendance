@@ -1,0 +1,410 @@
+<title>Foundation Attendance</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&display=swap">
+<style>
+/* Layout: one narrow column, phone-first. Class tabs, roll grid, ready message, then a name editor. */
+:root{
+  --bg:#f4f6fb; --surface:#ffffff; --fg:#14213d; --muted:#5b6784; --line:#d9dfec;
+  --blue:#0c3472; --blue-ink:#ffffff; --red:#8c1426; --red-ink:#ffffff; --ok:#1f7a4d; --ok-ink:#ffffff; --warn:#9a5b00;
+  --soft:#e6eef8; --redsoft:#f7e1e4;
+  --font:"Mukta","Noto Sans Devanagari","Devanagari Sangam MN","Kohinoor Devanagari","Nirmala UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1424; --surface:#151e33; --fg:#e8edf8; --muted:#9aa7c4; --line:#2a3656;
+  --blue:#7ea6ec; --blue-ink:#0d1424; --red:#e0677a; --red-ink:#0d1424; --ok:#58c58c; --ok-ink:#0d1424; --warn:#e3b04a; --soft:#1b2744; --redsoft:#3a1f2c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1424; --surface:#151e33; --fg:#e8edf8; --muted:#9aa7c4; --line:#2a3656;
+  --blue:#7ea6ec; --blue-ink:#0d1424; --red:#e0677a; --red-ink:#0d1424; --ok:#58c58c; --ok-ink:#0d1424; --warn:#e3b04a; --soft:#1b2744; --redsoft:#3a1f2c; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header h1{margin:0;font-size:1.55rem;font-weight:800;color:var(--blue);text-wrap:balance}
+header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+.label{font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.tab{font:inherit;font-weight:800;font-size:1.1rem;padding:10px 0;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;-webkit-appearance:none;appearance:none}
+.tab small{display:block;font-weight:400;font-size:.7rem;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.tab[aria-selected="true"] small{color:var(--blue-ink);opacity:.8}
+.field{display:flex;gap:8px}
+.field input{flex:1;min-width:0;font:inherit;font-size:1.15rem;padding:11px 12px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);font-variant-numeric:tabular-nums;-webkit-appearance:none;appearance:none}
+.btn{font:inherit;font-weight:600;padding:10px 14px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;-webkit-appearance:none;appearance:none}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.btn.wa{background:var(--ok);border-color:var(--ok);color:var(--ok-ink);text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.hint{font-size:.85rem;color:var(--muted);margin:6px 0 0}
+.bad{color:var(--warn);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px}
+.roll{font:inherit;font-weight:600;font-variant-numeric:tabular-nums;height:44px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;-webkit-appearance:none;appearance:none;padding:0}
+.roll[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--red-ink)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:12px 14px}
+.count{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.count b{font-size:1.5rem;color:var(--red);font-variant-numeric:tabular-nums}
+.names{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px}
+.names li{display:flex;gap:10px}
+.names .r{min-width:2.2em;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+textarea{width:100%;box-sizing:border-box;min-height:210px;font:inherit;font-size:16px;line-height:1.55;padding:12px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);resize:vertical;-webkit-appearance:none;appearance:none}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.opts label{display:flex;align-items:center;gap:8px;min-height:32px;font-size:.95rem}
+.toast{min-height:1.4em;font-size:.9rem;color:var(--ok);font-weight:600;margin:6px 0 0}
+.sample{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;background:var(--soft);color:var(--blue);padding:2px 8px;border-radius:4px;margin-left:6px}
+details.edit{border:1.5px solid var(--line);border-radius:8px;background:var(--surface)}
+details.edit summary{cursor:pointer;font-weight:600;padding:12px 14px;list-style:none}
+details.edit summary::-webkit-details-marker{display:none}
+details.edit summary::after{content:"+";float:right;color:var(--muted)}
+details.edit[open] summary::after{content:"−"}
+.edit-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.erow{display:grid;grid-template-columns:2.4em minmax(0,1fr);gap:4px 10px;align-items:center}
+.erow .r{font-weight:600;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.erow input{min-width:0;width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px 10px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);-webkit-appearance:none;appearance:none}
+.erow input.changed{border-color:var(--blue)}
+.erow .en{grid-column:2;font-size:.78rem;color:var(--muted);margin-top:-2px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.vbtn{font:inherit;font-weight:600;padding:10px 0;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;-webkit-appearance:none;appearance:none}
+.vbtn[aria-selected="true"]{background:var(--soft);border-color:var(--blue);color:var(--blue)}
+.dates{display:flex;gap:8px}
+.dates input{flex:1;min-width:0;font:inherit;font-size:1.05rem;padding:10px 12px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);-webkit-appearance:none;appearance:none;min-height:46px}
+.status{display:inline-block;font-size:.78rem;font-weight:600;padding:2px 8px;border-radius:4px;margin-left:6px;letter-spacing:.03em}
+.status.ok{background:var(--soft);color:var(--ok)}
+.status.todo{background:var(--soft);color:var(--warn)}
+.tw{overflow-x:auto;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);-webkit-overflow-scrolling:touch}
+table.rt{border-collapse:separate;border-spacing:0;font-size:.8rem;min-width:100%}
+.rt th,.rt td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px 5px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;background:var(--surface)}
+.rt thead th{background:var(--soft);color:var(--blue);font-weight:600;position:sticky;top:0}
+.rt .nm{text-align:left;position:sticky;left:0;z-index:2;min-width:170px;max-width:170px;overflow:hidden;text-overflow:ellipsis;background:var(--surface);border-right:2px solid var(--line)}
+.rt thead .nm{background:var(--soft);z-index:3}
+.rt .sun{background:var(--soft)}
+.rt td.a{background:var(--redsoft);color:var(--red);font-weight:800}
+.rt td.p{color:var(--muted)}
+.rt .tot{font-weight:600}
+.rt tfoot td{font-weight:600;background:var(--soft)}
+.sum{font-size:.95rem;margin:0}
+.sum b{font-variant-numeric:tabular-nums}
+.sample[hidden],.status[hidden]{display:none}
+.legend{font-size:.8rem;color:var(--muted);margin:6px 0 0}
+.note{background:var(--soft);border-radius:6px;padding:10px 12px;font-size:.88rem;color:var(--fg);margin:0}
+details.edit textarea{min-height:90px;font-size:14px}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Foundation Attendance</h1>
+  <p>JVM CBSE &amp; Foundation, Murud. Mark daily absentees, send the WhatsApp message, and download the monthly register.</p>
+</header>
+
+<div class="views" role="tablist">
+  <button class="vbtn" id="vMark" role="tab" type="button" aria-selected="true">Mark attendance</button>
+  <button class="vbtn" id="vRep" role="tab" type="button" aria-selected="false">Monthly report</button>
+</div>
+
+<section aria-label="Class">
+  <p class="label">Class</p>
+  <div class="tabs" id="tabs" role="tablist"></div>
+</section>
+
+<div id="markView" style="display:flex;flex-direction:column;gap:18px">
+  <section aria-label="Date">
+    <p class="label">Date<span class="status todo" id="status">Not saved yet</span></p>
+    <div class="dates">
+      <input id="date" type="date" aria-label="Attendance date">
+      <button class="btn" id="today" type="button">Today</button>
+    </div>
+    <p class="hint" id="dateText"></p>
+  </section>
+
+  <section aria-label="Absent roll numbers">
+    <p class="label">Absent roll numbers<span class="sample" id="sample">Example</span></p>
+    <div class="field">
+      <input id="rolls" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="e.g. 3, 12, 27" aria-label="Roll numbers of absent students">
+      <button class="btn" id="clear" type="button">Clear</button>
+    </div>
+    <p class="hint" id="bad" hidden></p>
+    <p class="hint">Separate numbers with a comma or space. Full seat numbers like 50003 also work. You can also tap the numbers below.</p>
+  </section>
+
+  <section aria-label="Roll number picker"><div class="grid" id="grid"></div></section>
+
+  <section class="panel" aria-live="polite">
+    <div class="count"><span>Absent students</span><b id="n">0</b></div>
+    <ul class="names" id="names"></ul>
+  </section>
+
+  <button class="btn primary" id="save" type="button" style="padding:13px 14px;font-size:1.05rem">Save attendance</button>
+  <p class="toast" id="toastS" role="status" style="margin-top:-10px"></p>
+
+  <section aria-label="WhatsApp message">
+    <p class="label">WhatsApp message</p>
+    <div class="opts"><label><input type="checkbox" id="optClass"> Mention the class in the message</label></div>
+    <textarea id="msg" aria-label="Generated message" spellcheck="false"></textarea>
+    <p class="hint" id="edited" hidden>You edited the message by hand, so it will not change when you change the roll numbers. <a href="#" id="regen">Regenerate it</a></p>
+    <div class="actions">
+      <button class="btn primary" id="copy" type="button">Copy message</button>
+      <a class="btn wa" id="wa" href="#" target="_blank" rel="noopener">Open WhatsApp</a>
+    </div>
+    <p class="toast" id="toast" role="status"></p>
+  </section>
+</div>
+
+<div id="repView" style="display:none;flex-direction:column;gap:14px">
+  <section aria-label="Month">
+    <p class="label">Month</p>
+    <div class="dates"><input id="month" type="month" aria-label="Report month"></div>
+  </section>
+  <p class="sum" id="sum"></p>
+  <div class="tw"><table class="rt" id="rt"></table></div>
+  <p class="legend"><b>A</b> absent · <b>P</b> present · blank = attendance not saved that day · shaded columns are Sundays</p>
+  <div class="row2">
+    <button class="btn primary" id="dlOne" type="button">Download this class (CSV)</button>
+    <button class="btn" id="dlAll" type="button">Download all classes (CSV)</button>
+  </div>
+  <button class="btn" id="copyTsv" type="button">Copy table for Google Sheets / Excel</button>
+  <p class="toast" id="toastR" role="status"></p>
+  <p class="note">Attendance is saved on the phone or computer you use, in this browser. Each teacher's device keeps its own register. Use Backup below to move or combine records.</p>
+</div>
+
+<details class="edit" id="editBox">
+  <summary>Edit Marathi names</summary>
+  <div class="edit-body">
+    <p class="hint" style="margin:0">Fix any spelling below. Changes apply to the message at once and are saved in this browser on this device only. To fix a name for every teacher, copy the corrections and send them to the person who maintains this page.</p>
+    <div id="elist" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="row2">
+      <button class="btn" id="copyFix" type="button">Copy corrections</button>
+      <button class="btn" id="resetFix" type="button">Reset this class</button>
+    </div>
+    <p class="toast" id="toast2" role="status"></p>
+  </div>
+</details>
+
+<details class="edit" id="bkBox">
+  <summary>Backup and restore</summary>
+  <div class="edit-body">
+    <p class="hint" style="margin:0">Copy a backup of all saved attendance and name edits, send it to another teacher or keep it safe, and paste it here on any device to merge it in.</p>
+    <button class="btn" id="bkCopy" type="button">Copy backup</button>
+    <textarea id="bkText" placeholder="Paste a backup here, then tap Merge" aria-label="Backup text" spellcheck="false"></textarea>
+    <button class="btn" id="bkMerge" type="button">Merge pasted backup</button>
+    <p class="toast" id="toast3" role="status"></p>
+  </div>
+</details>
+</div>
+<script>
+const ROSTER = {"5": [[1, "Gouravi Shashikant Kanase", "गौरवी शशिकांत कणसे"], [2, "Arya Dharmraj Shewale", "आर्या धर्मराज शेवाळे"], [3, "Kashaf Raheman Choudhari", "कशफ रहेमान चौधरी"], [4, "Vaishnavi Ramprasad Subhedar", "वैष्णवी रामप्रसाद सुभेदार"], [5, "Shravani Vaibhav Salunke", "श्रावणी वैभव साळुंके"], [6, "Shravani Shivaji Mane", "श्रावणी शिवाजी माने"], [7, "Shruti Milind Garad", "श्रुती मिलिंद गराड"], [8, "Gayatri Sachin Zodge", "गायत्री सचिन झोडगे"], [9, "Aayesha Salim Shaikh", "आयेशा सलीम शेख"], [10, "Prajkta Gunwant Pawar", "प्राजक्ता गुणवंत पवार"], [11, "Mahera Azruddin Tamboli", "माहेरा अजरुद्दीन तांबोळी"], [12, "Aradhya Vinod Dharmare", "आराध्या विनोद धर्मरे"], [13, "Pranjali Rama Salgar", "प्रांजली रामा सलगर"], [14, "Siddhi Pawan Mundada", "सिद्धी पवन मुंदडा"], [15, "Sarthak Shivling Bidve", "सार्थक शिवलिंग बिडवे"], [16, "Arsh Imran Sayyed", "अर्श इम्रान सय्यद"], [17, "Omkar Ganesh Kaldate", "ओंकार गणेश कलदाटे"], [18, "Harsh Balaji Aade", "हर्ष बालाजी आडे"], [19, "Shantanu Anil Kaldate", "शंतनू अनिल कलदाटे"], [20, "Rugved Govind Awad", "ऋग्वेद गोविंद आवड"], [21, "Swaraj Manoj Jadhav", "स्वराज मनोज जाधव"], [22, "Alam Hassan Shaikh", "आलम हसन शेख"], [23, "Faizal Mola Shaikh", "फैजल मोला शेख"], [24, "Harshal Annarao Birajdar", "हर्षल अण्णाराव बिराजदार"], [25, "Shivam Hanumant Kumbhar", "शिवम हनुमंत कुंभार"], [26, "Shivmani Dnyaneshwar Avdhut", "शिवमणी ज्ञानेश्वर अवधूत"], [27, "Saurav Sanjay Mali", "सौरव संजय माळी"], [28, "Ganesh Tukaram Langute", "गणेश Tukaram लांगुटे"], [29, "Bharat Datta Yedake", "भरत दत्ता येडके"], [30, "Yash Kakasaheb Mane", "यश काकासाहेब माने"], [31, "Pranav Ganesh Jadhav", "प्रणव गणेश जाधव"], [32, "Prathamesh Pandurang Giri", "प्रथमेश पांडुरंग गिरी"], [33, "Avani Shinde", "अवनी शिंदे"]], "6": [[1, "Gargi Govind Chavan", "गार्गी गोविंद चव्हाण"], [2, "Pranavi Pratap Mali", "प्रणवी प्रताप माळी"], [3, "Ananya Manishkumar Khandelwal", "अनन्या मनीषकुमार खंडेलवाल"], [4, "Diksha Vishwadeep Kamble", "दीक्षा विश्वदीप कांबळे"], [5, "Shruti Balasaheb Zodge", "श्रुती बाळासाहेब झोडगे"], [6, "Nandini Nilesh Shinde", "नंदिनी नीलेश शिंदे"], [7, "Ruchita Parasram Sawant", "रुचिता परशुराम सावंत"], [8, "Swaranjali Suresh Surwase", "स्वरांजली सुरेश सुरवसे"], [9, "Hindavi Laxman Haul", "हिंदवी लक्ष्मण हौळ"], [10, "Sayali Hemant Sawant", "सायली हेमंत सावंत"], [11, "Pratiksha Nagorao Garad", "प्रतीक्षा नागोराव गराड"], [12, "Sayali Vishwanath Sawant", "सायली विश्वनाथ सावंत"], [13, "Tanuja Balaji Kumbhar", "तनुजा बालाजी कुंभार"], [14, "Komal Tanaji Admane", "कोमल तानाजी आडमाने"], [15, "Sanavi Sachin Waghmode", "सानवी सचिन वाघमोडे"], [16, "Krutika Vidyasagar Pandhare", "कृतिका विद्यासागर पांढरे"], [17, "Aditi Sachin Hubale", "अदिती सचिन हुबाळे"], [18, "Shreeya Shrikant Warade", "श्रेया श्रीकांत वराडे"], [19, "Ishwari Balu Shinde", "ईश्वरी बाळू शिंदे"], [20, "Sayali Umesh Ganapure", "सायली उमेश गणपुरे"], [21, "Kartiki Santosh Gaikwad", "कार्तिकी संतोष गायकवाड"], [22, "Shreya Bhimrao Shinde", "श्रेया भीमराव शिंदे"], [23, "Anuja Siddheshwar Kanade", "अनुजा सिद्धेश्वर कानडे"], [24, "Atharv Vitthal Shitole", "अथर्व विठ्ठल शितोळे"], [25, "Sarthak Sitaram Subhedar", "सार्थक सीताराम सुभेदार"], [26, "Kundalik Sawant", "कुंडलिक सावंत"], [27, "Kartik Keshav Sawant", "कार्तिक केशव सावंत"], [28, "Shreyash Nitesh Haul", "श्रेयश नितेश हौळ"], [29, "Atharv Ashok Sawant", "अथर्व अशोक सावंत"], [30, "Shreyash Balkrishna Deshmukh", "श्रेयश Balkrishna देशमुख"], [31, "Vaibhav Ramprasad Subhedar", "वैभव रामप्रसाद सुभेदार"], [32, "Adarsh Balaji Lomate", "आदर्श बालाजी लोमटे"], [33, "Sarthak Rajkumar Tatale", "सार्थक राजकुमार ताटळे"], [34, "Shridhan Mahesh Lagdive", "श्रीधन महेश लगदिवे"], [35, "Shreekesh Fulchand Kharade", "श्रीकेश फुलचंद खराडे"], [36, "Rajveer Shyamsundar Takmoge", "राजवीर श्यामसुंदर टकमोगे"], [37, "Om Pankaj Dalave", "ओम पंकज दळवे"], [38, "Atharv Yadavrao Yeotiwad", "अथर्व यादवराव येवतीवाड"], [39, "Sarthak Laxman Patil", "सार्थक लक्ष्मण पाटील"], [40, "Sudarshan Dattatraya Mule", "सुदर्शन दत्तात्रय मुळे"], [41, "Rajveer Pandurang Wakure", "राजवीर पांडुरंग वाकुरे"], [42, "Sanskar Umesh Sawant", "संस्कार उमेश सावंत"], [43, "Akash Ashok Kumbhar", "आकाश अशोक कुंभार"], [44, "Vedant Vaibhav Navgire", "वेदांत वैभव नवगिरे"], [45, "Samrat Dipak Mane", "सम्राट दीपक माने"], [46, "Rajveer Vinod Dhormare", "राजवीर विनोद ढोरमारे"], [47, "Sanskar Ashok Gund", "संस्कार अशोक गुंड"], [48, "Apurv Balbheem Agarkar", "अपूर्व बाळभीम आगरकर"], [49, "Vedant Umesh Sawant", "वेदांत उमेश सावंत"], [50, "Aryan Bharat Gaikwad", "आर्यन भरत गायकवाड"], [51, "Srushti Gajendra Kamble", "सृष्टी गजेंद्र कांबळे"]], "7": [[1, "Pradnya Rajkumar Samudre", "प्रज्ञा राजकुमार समुद्रे"], [2, "Gitashri Sanjay Vange", "गीताश्री संजय वांगे"], [3, "Vedika Ramesh Vange", "वेदिका रमेश वांगे"], [4, "Aradhana Amit Kamble", "Aradhana Amit कांबळे"], [5, "Shreya Sharad Padule", "श्रेया शरद पडुळे"], [6, "Anushka Vyankat Kakade", "अनुष्का व्यंकट काकडे"], [7, "Kavya Ravindra Tanmor", "काव्या रवींद्र तानमोर"], [8, "Harshada Govind Panchal", "हर्षदा गोविंद पांचाळ"], [9, "Unnati Shivling Bidve", "उन्नती शिवलिंग बिडवे"], [10, "Ankita Namdev Sahalugde", "अंकिता नामदेव सहालुगडे"], [11, "Sanskruti Sharad Khose", "संस्कृती शरद खोसे"], [12, "Arya Ashok Deshmukh", "आर्या अशोक देशमुख"], [13, "Prajakta Milind Garad", "प्राजक्ता मिलिंद गराड"], [14, "Teju Vivekanand Suryavanshi", "तेजू विवेकानंद सूर्यवंशी"], [15, "Anushka Anil Deshmukh", "अनुष्का अनिल देशमुख"], [16, "Rajnandini Pawan Patade", "राजनंदिनी पवन पाटाडे"], [17, "Navmita Ganesh Bidve", "नवमिता गणेश बिडवे"], [18, "Pratibha Dilip Kadam", "प्रतिभा दिलीप कदम"], [19, "Prachi Sunil Nade", "प्राची सुनील नाडे"], [20, "Shrutika Meghraj Samudre", "श्रुतिका मेघराज समुद्रे"], [21, "Samruddhi Sagar Shinde", "समृद्धी सागर शिंदे"], [22, "Arohi Atul Khose", "आरोही अतुल खोसे"], [23, "Tejal Govind Awad", "तेजल गोविंद आवड"], [24, "Samruddhi Manoj Jadhav", "समृद्धी मनोज जाधव"], [25, "Mrunmayee Mukund Jadhav", "मृण्मयी मुकुंद जाधव"], [26, "Swarali Dnyaneshwar Kadam", "स्वराली ज्ञानेश्वर कदम"], [27, "Aryan Ankush Sawase", "आर्यन अंकुश सावसे"], [28, "Pranav Chandrakant Pichare", "प्रणव चंद्रकांत पिचारे"], [29, "Harshwardhan Gopal Tekale", "हर्षवर्धन गोपाल टेकाळे"], [30, "Soham Anil Kanase", "सोहम अनिल कणसे"], [31, "Shreyash Sambhaji Shinde", "श्रेयश संभाजी शिंदे"], [32, "Devang Balaji Kumbhar", "देवांग बालाजी कुंभार"], [33, "NomanRaza Imran Sayyed", "नोमानरजा इम्रान सय्यद"], [34, "Rohan Limbraj Mane", "रोहन लिंबराज माने"], [35, "Sumedh Ashishkumar Sarwade", "सुमेध आशिषकुमार सरवदे"], [36, "Shivhar Dhananjay Kale", "शिवहर धनंजय काळे"], [37, "Swaraj Rajendra Sable", "स्वराज राजेंद्र साबळे"], [38, "Adarsh Santosh Kaldate", "आदर्श संतोष कलदाटे"], [39, "Prasad Dnyaneshwar Kumbhar", "प्रसाद ज्ञानेश्वर कुंभार"], [40, "Samarath Balaji Aade", "समर्थ बालाजी आडे"], [41, "Athary Gorakh Gambhire", "अथर्व गोरख गंभीरे"], [42, "Pranit Suraj Mahadik", "प्रणीत सूरज महाडिक"], [43, "Vedant Balaji Lakal", "वेदांत बालाजी लकाल"], [44, "Mahadev Uddhav Jadhav", "महादेव उद्धव जाधव"], [45, "Sarthak Balaji Wakure", "सार्थक बालाजी वाकुरे"], [46, "Yogiraj Ashok Kumbhar", "योगीराज अशोक कुंभार"], [47, "Atharv Bhausaheb Sawai", "अथर्व भाऊसाहेब सवाई"], [48, "Sarthak Balaji Tongale", "सार्थक बालाजी टोंगळे"], [49, "Zishan Feroz Shaikh", "झीशान फिरोज शेख"], [50, "Ahil Sartaj Mulani", "अहिल सरताज मुलाणी"], [51, "Atharv Sandip Tambe", "अथर्व संदीप तांबे"], [52, "Sanidhya Pratap Patade", "सानिध्य प्रताप पाटाडे"], [53, "Srishti Sagar Langre", "सृष्टी सागर लांगरे"]], "8": [[1, "Arya Sachin Kawade", "आर्या सचिन कवडे"], [2, "Shraddha Navnath Bhanje", "श्रद्धा नवनाथ भांजे"], [3, "Shruti Mahesh Nade", "श्रुती महेश नाडे"], [4, "Swara Balasaheb Patil", "Swara बाळासाहेब पाटील"], [5, "Tejashri Shivaji Chavan", "तेजश्री शिवाजी चव्हाण"], [6, "Shruti Ravindra Yedke", "श्रुती रवींद्र येडके"], [7, "Nandini Dipak Mate", "नंदिनी दीपक माटे"], [8, "Shraddha Tanaji Jagtap", "श्रद्धा तानाजी जगताप"], [9, "Pranjali Padmakar Sawant", "प्रांजली पद्माकर सावंत"], [10, "Ishwari Vidyasagar Koli", "ईश्वरी विद्यासागर कोळी"], [11, "Sakshi Balaji Lavate", "साक्षी बालाजी लावटे"], [12, "Akshata Vidyasagar Pandhare", "अक्षता विद्यासागर पांढरे"], [13, "Swarali Satish Bhise", "स्वराली सतीश भिसे"], [14, "Radha Sudhir Sawant", "राधा सुधीर सावंत"], [15, "Sneha Rajasaheb Bhise", "स्नेहा राजासाहेब भिसे"], [16, "Shweta Uttam Bansode", "श्वेता उत्तम बनसोडे"], [17, "Nandini Daji Sawant", "नंदिनी दाजी सावंत"], [18, "Srushti Digambar Tarade", "सृष्टी दिगंबर तरडे"], [19, "Prachi Ramesh Shinde", "प्राची रमेश शिंदे"], [20, "Yanjal Sachin Chavan", "यांजल सचिन चव्हाण"], [21, "Samruddhi Pandurang Wakure", "समृद्धी पांडुरंग वाकुरे"], [22, "Aradhya Avinash Koli", "आराध्या अविनाश कोळी"], [23, "Akshara Deepak Bhise", "अक्षरा दीपक भिसे"], [24, "Samruddhi Sudhir Wakure", "समृद्धी सुधीर वाकुरे"], [25, "Khushi Javed Patel", "खुशी जावेद पटेल"], [26, "Shreya Sham Vyanjane", "श्रेया शाम व्यंजने"], [27, "Gouri Suryakant Kapase", "गौरी सूर्यकांत कापसे"], [28, "Atharv Dharmraj Shewale", "अथर्व धर्मराज शेवाळे"], [29, "Chaitanya Angad Deshmukh", "चैतन्य अंगद देशमुख"], [30, "Rudra Balkrushna Deshmukh", "रुद्र बाळकृष्ण देशमुख"], [31, "Tanmay Balaji Pangavkar", "तन्मय बालाजी पांगावकर"], [32, "Satwik Chandrakant Londhe", "सात्विक चंद्रकांत लोंढे"], [33, "Abhinav Sagar Mate", "अभिनव सागर माटे"], [34, "Udayan Yashojit Bhosale", "उदयन यशोजित भोसले"], [35, "Arav Amar More", "आरव अमर मोरे"], [36, "Soham Sanjay Mali", "सोहम संजय माळी"], [37, "Shravan Shivram Bhise", "श्रावण शिवराम भिसे"], [38, "Omshree Lahu Sawase", "ओमश्री लहू सावसे"], [39, "Karan Shyam Nade", "करण Shyam नाडे"], [40, "Swaraj Vikas Bukan", "स्वराज विकास बुकन"], [41, "Rohan Ajit Durugkar", "रोहन अजित दुरुगकर"], [42, "Rudra Balu Shinde", "रुद्र बाळू शिंदे"], [43, "Yash Chandrakant Bondare", "यश चंद्रकांत बोंदरे"], [44, "Adarsh Mahesh Nipanikar", "आदर्श महेश निपाणीकर"], [45, "Prathamesh Umesh Shinde", "प्रथमेश उमेश शिंदे"], [46, "Aditya Sachin Zodge", "आदित्य सचिन झोडगे"], [47, "Suraj Tejas Nimbalkar", "सूरज तेजस निंबाळकर"], [48, "Sanskar Mahadev Kshirsagar", "संस्कार महादेव क्षीरसागर"], [49, "Juned Jalil Shaikh", "जुनेद जलील शेख"], [50, "Vivek Vinod Nade", "विवेक विनोद नाडे"], [51, "Shreyash Amol Nade", "श्रेयश Amol नाडे"], [52, "Digvijay Satish Makude", "दिग्विजय सतीश मकुडे"], [53, "Ruturaj Saudagar Khose", "ऋतुराज सौदागर खोसे"], [54, "Sangram Balaji Dhaygude", "संग्राम बालाजी ढायगुडे"], [55, "Shahid Iqbal Shaikh", "शाहिद इक्बाल शेख"], [56, "Arav Amol Koli", "आरव Amol कोळी"], [57, "Rudra Ganesh Giri", "रुद्र गणेश गिरी"], [58, "Samarth Govind Bondar", "समर्थ गोविंद बोंडर"], [59, "Prasad Dhobale", "प्रसाद ढोबळे"], [60, "Ayesha Sadik Shaikh", "आयेशा सादिक शेख"], [61, "Aditi Parmeshwar Shete", "अदिती परमेश्वर शेटे"], [62, "Mariya Siddik Lone", "मारिया सिद्दीक लोणे"], [63, "Pratiksha Dipak Lokare", "प्रतीक्षा दीपक लोकरे"], [64, "Sayali Haridas Atkure", "सायली हरिदास अटकुरे"]], "9": [[1, "Unnati Vitthal Shitole", "उन्नती विठ्ठल शितोळे"], [2, "Shreya Dattaprasad Samudre", "श्रेया Dattaprasad समुद्रे"], [3, "Nigut Runal Ravindra", "निगुट रुणाल रवींद्र"], [4, "Raghvendra Gopal Tekale", "राघवेंद्र गोपाल टेकाळे"], [5, "Arnav Balaji Aspatwar", "अर्णव बालाजी आसपतवार"], [6, "Saiprasad Mahendrasingh Tiwari", "साईप्रसाद महेंद्रसिंह तिवारी"], [7, "Pranil Pandurang Modi", "प्रणील पांडुरंग मोदी"], [8, "Vaibhav Sudhakar Patil", "वैभव सुधाकर पाटील"], [9, "Saad Allamin Shikalkar", "साद अल्लामीन शिकलकर"], [10, "Samarth Khanderao Shinde", "समर्थ खंडेराव शिंदे"], [11, "Ayush Bhausaheb Sawai", "आयुष भाऊसाहेब सवाई"], [12, "Ayush Nitin Kshirsagar", "आयुष नितीन क्षीरसागर"], [13, "Pruthviraj Ganesh Bhosale", "पृथ्वीराज गणेश भोसले"]]};   // roll, English name, Marathi name
+const CLASSES = [5,6,7,8,9];
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const LS = {get(k,f){try{const v=localStorage.getItem(k);return v==null?f:v}catch(e){return f}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+let cls = 7, view = 'mark', absent = new Set(), invalid = [], manual = false, example = true;
+let date = ymd(new Date()), month = date.slice(0,7);
+let over = {}, rec = {};
+try { over = JSON.parse(LS.get('jvm-att-names','{}')) || {}; } catch(e){}
+try { rec = JSON.parse(LS.get('jvm-att-rec','{}')) || {}; } catch(e){}
+const savedClass = +LS.get('jvm-att-class',''); if (CLASSES.includes(savedClass)) cls = savedClass;
+const saveOver = () => LS.set('jvm-att-names', JSON.stringify(over));
+const saveRec = () => LS.set('jvm-att-rec', JSON.stringify(rec));
+const rows = c => ROSTER[c];
+const rk = (d,c) => d+'|'+c;
+const has = (c,r) => rows(c).some(x => x[0]===r);
+const nameOf = (c,r) => { const k=c+'-'+r, row=rows(c).find(x=>x[0]===r); return (over[k]!=null && over[k]!=='') ? over[k] : row[2]; };
+
+function parseRolls(text){
+  const nums = text.match(/\d+/g) || [], ok = new Set(), bad = [];
+  nums.forEach(t => { let n = parseInt(t,10);
+    if (n >= 10000 && Math.floor(n/10000) === cls) n = n % 10000;
+    if (has(cls,n)) ok.add(n); else bad.push(t); });
+  return {ok, bad};
+}
+function sameSet(a, arr){ return arr && a.size===arr.length && arr.every(x=>a.has(x)); }
+
+function buildTabs(){
+  $('tabs').innerHTML = CLASSES.map(c => `<button class="tab" role="tab" type="button" data-c="${c}" aria-selected="${c===cls}">${c}<small>${rows(c).length} students</small></button>`).join('');
+}
+function buildGrid(){
+  $('grid').innerHTML = rows(cls).map(([r,en]) => `<button type="button" class="roll" data-r="${r}" aria-pressed="${absent.has(r)}" aria-label="${r} ${esc(en)}">${r}</button>`).join('');
+}
+function buildEdit(){
+  $('elist').innerHTML = rows(cls).map(([r,en,mr]) => {
+    const k=cls+'-'+r, v=(over[k]!=null && over[k]!=='') ? over[k] : mr;
+    return `<div class="erow"><span class="r">${r}</span><input type="text" data-r="${r}" value="${esc(v)}" class="${v!==mr?'changed':''}" aria-label="Marathi name for roll ${r}" autocomplete="off" autocorrect="off" spellcheck="false"><span class="en">${esc(en)}</span></div>`;
+  }).join('');
+}
+function loadDay(){
+  const saved = rec[rk(date,cls)];
+  if (saved){ absent = new Set(saved); example = false; } else if (!example){ absent = new Set(); }
+  invalid = []; manual = false;
+  $('rolls').value = [...absent].sort((a,b)=>a-b).join(', ');
+}
+function dateLabel(d){
+  const [y,m,dd] = d.split('-').map(Number);
+  return new Date(y,m-1,dd).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function message(){
+  const list = [...absent].sort((a,b)=>a-b);
+  const [y,m,d] = date.split('-');
+  const day = date === ymd(new Date()) ? 'आज' : `दिनांक ${d}-${m}-${y} रोजी`;
+  const where = $('optClass').checked ? `${day} फाउंडेशन क्लासला (इयत्ता ${cls})` : `${day} फाउंडेशन क्लासला`;
+  if (!list.length) return `${where} सर्व विद्यार्थी उपस्थित आहेत. धन्यवाद!`;
+  return `${where} खालील विद्यार्थी गैरहजर (Absent) आहेत:\n` + list.map((r,i)=>`${i+1}. ${nameOf(cls,r)}`).join('\n') + `\nसंबंधित पालकांनी कृपया याची नोंद घ्यावी. धन्यवाद!`;
+}
+function renderMark(opts={}){
+  const list = [...absent].sort((a,b)=>a-b);
+  $('date').value = date; $('dateText').textContent = dateLabel(date) + (date===ymd(new Date()) ? ' (today)' : '');
+  $('n').textContent = list.length;
+  $('names').innerHTML = list.map(r=>`<li><span class="r">${r}</span><span>${esc(nameOf(cls,r))}</span></li>`).join('');
+  document.querySelectorAll('.roll').forEach(b => b.setAttribute('aria-pressed', absent.has(+b.dataset.r)));
+  $('bad').hidden = !invalid.length;
+  $('bad').innerHTML = invalid.length ? `<span class="bad">Not in class ${cls}: ${invalid.join(', ')}</span>` : '';
+  if (!manual) $('msg').value = message();
+  $('edited').hidden = !manual;
+  $('wa').href = 'https://wa.me/?text=' + encodeURIComponent($('msg').value);
+  const saved = rec[rk(date,cls)], st = $('status');
+  if (saved && sameSet(absent, saved)){ st.textContent='Saved'; st.className='status ok'; }
+  else if (saved){ st.textContent='Unsaved changes'; st.className='status todo'; }
+  else { st.textContent='Not saved yet'; st.className='status todo'; }
+  $('sample').hidden = !example;
+  if (opts.writeInput) $('rolls').value = list.join(', ');
+}
+
+// monthly report
+function report(c, ym){
+  const [y,m] = ym.split('-').map(Number), nd = new Date(y,m,0).getDate();
+  const days = [];
+  for (let d=1; d<=nd; d++){ const k = rk(ym+'-'+pad(d), c); days.push({d, dow:new Date(y,m-1,d).getDay(), held: !!rec[k], abs: rec[k]||[]}); }
+  const held = days.filter(x=>x.held).length;
+  const list = rows(c).map(([r,en]) => {
+    let a = 0; days.forEach(x => { if (x.held && x.abs.includes(r)) a++; });
+    const p = held - a; return {r, en, a, p, pct: held ? p/held*100 : null, cells: days.map(x => !x.held ? '' : (x.abs.includes(r) ? 'A' : 'P'))};
+  });
+  const dayAbs = days.map(x => x.held ? x.abs.length : '');
+  const avg = held ? list.reduce((s,x)=>s+x.pct,0)/list.length : null;
+  return {y,m,nd,days,held,list,dayAbs,avg};
+}
+function renderReport(){
+  const R = report(cls, month);
+  $('sum').innerHTML = `<b>Class ${cls}</b> · ${MONTHS[R.m-1]} ${R.y} · <b>${R.held}</b> day${R.held===1?'':'s'} recorded` + (R.avg==null ? ' · no attendance saved yet' : ` · average attendance <b>${R.avg.toFixed(1)}%</b>`);
+  let h = '<thead><tr><th class="nm">Roll · Student</th>' + R.days.map(x=>`<th class="${x.dow===0?'sun':''}">${x.d}<br><span style="font-weight:400;font-size:.7rem">${DOW[x.dow][0]}</span></th>`).join('') + '<th>Held</th><th>Pres.</th><th>Abs.</th><th>%</th></tr></thead><tbody>';
+  R.list.forEach(s => {
+    h += `<tr><td class="nm">${s.r}. ${esc(s.en)}</td>` + s.cells.map((c,i)=>`<td class="${c==='A'?'a':c==='P'?'p':(R.days[i].dow===0?'sun':'')}">${c}</td>`).join('') +
+      `<td class="tot">${R.held}</td><td class="tot">${s.p}</td><td class="tot">${s.a}</td><td class="tot">${s.pct==null?'–':s.pct.toFixed(1)}</td></tr>`;
+  });
+  h += '</tbody><tfoot><tr><td class="nm" style="background:var(--soft)">Absent per day</td>' + R.dayAbs.map(v=>`<td>${v}</td>`).join('') + '<td></td><td></td><td></td><td></td></tr></tfoot>';
+  $('rt').innerHTML = h;
+}
+function table(c, ym){
+  const R = report(c, ym), t = [];
+  t.push(['JVM CBSE & FOUNDATION, MURUD']);
+  t.push([`Class ${c} - Monthly Attendance - ${MONTHS[R.m-1]} ${R.y}`]);
+  t.push([]);
+  t.push(['Roll','Student Name', ...R.days.map(x=>x.d), 'Days held','Present','Absent','Percentage']);
+  R.list.forEach(s => t.push([s.r, s.en, ...s.cells, R.held, s.p, s.a, s.pct==null?'':s.pct.toFixed(1)]));
+  t.push(['','Absent per day', ...R.dayAbs]);
+  return t;
+}
+const csvCell = v => { v = String(v==null?'':v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+const toCsv = t => t.map(r => r.map(csvCell).join(',')).join('\r\n');
+const toTsv = t => t.map(r => r.join('\t')).join('\n');
+
+function toast(id, t){ $(id).textContent = t; setTimeout(()=>{ if ($(id).textContent===t) $(id).textContent=''; }, 4000); }
+async function copyText(text, fallbackEl, id, okMsg){
+  try { await navigator.clipboard.writeText(text); toast(id, okMsg); }
+  catch(e){ try { fallbackEl.focus(); fallbackEl.select(); fallbackEl.setSelectionRange(0, 999999); } catch(_){} toast(id, 'Text selected. Tap Copy in the pop-up menu.'); }
+}
+async function saveFile(name, text){
+  const data = '﻿' + text;
+  try {
+    const d = await (window.claude && window.claude.use ? window.claude.use('downloads') : null);
+    if (d){ await d.save({filename:name, data}); toast('toastR','File ready: '+name); return; }
+  } catch(e){ if (e && e.code === 'declined') return; }
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data],{type:'text/csv;charset=utf-8'})); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    toast('toastR','Download requested: '+name+'. If nothing downloads, use "Copy table" instead.');
+  } catch(e){ toast('toastR','Download is not available here. Use "Copy table" instead.'); }
+}
+const fname = (c, ym) => `Attendance_${c==='all'?'All_Classes':'Class_'+c}_${ym}.csv`;
+
+function setView(v){
+  view = v; $('markView').style.display = v==='mark' ? 'flex' : 'none'; $('repView').style.display = v==='rep' ? 'flex' : 'none';
+  $('vMark').setAttribute('aria-selected', v==='mark'); $('vRep').setAttribute('aria-selected', v==='rep');
+  if (v==='rep') renderReport();
+}
+function refresh(){ view==='rep' ? renderReport() : renderMark(); }
+function setClass(c){
+  cls = c; LS.set('jvm-att-class', String(c));
+  buildTabs(); buildGrid(); buildEdit();
+  if (!rec[rk(date,cls)]) { example = false; absent = new Set(); }
+  loadDay(); renderMark(); if (view==='rep') renderReport();
+}
+
+$('vMark').addEventListener('click', () => setView('mark'));
+$('vRep').addEventListener('click', () => setView('rep'));
+$('tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) setClass(+b.dataset.c); });
+$('date').addEventListener('change', () => { if (!$('date').value) return; date = $('date').value; month = date.slice(0,7); example = false; if (!rec[rk(date,cls)]) absent = new Set(); loadDay(); renderMark(); });
+$('today').addEventListener('click', () => { date = ymd(new Date()); month = date.slice(0,7); example = false; if (!rec[rk(date,cls)]) absent = new Set(); loadDay(); renderMark(); });
+$('month').addEventListener('change', () => { if ($('month').value){ month = $('month').value; renderReport(); } });
+$('grid').addEventListener('click', e => {
+  const b = e.target.closest('.roll'); if (!b) return;
+  example = false; const r = +b.dataset.r; absent.has(r) ? absent.delete(r) : absent.add(r);
+  invalid = []; manual = false; renderMark({writeInput:true});
+});
+$('rolls').addEventListener('input', () => { example = false; const p = parseRolls($('rolls').value); absent = p.ok; invalid = p.bad; manual = false; renderMark(); });
+$('clear').addEventListener('click', () => { example = false; absent = new Set(); invalid = []; manual = false; $('rolls').value=''; renderMark(); $('rolls').focus(); });
+$('save').addEventListener('click', () => {
+  rec[rk(date,cls)] = [...absent].sort((a,b)=>a-b); saveRec(); example = false; renderMark();
+  toast('toastS', `Saved: Class ${cls}, ${dateLabel(date)}.`);
+});
+$('optClass').addEventListener('change', () => { manual = false; renderMark(); });
+$('msg').addEventListener('input', () => { manual = true; renderMark(); });
+$('regen').addEventListener('click', e => { e.preventDefault(); manual = false; renderMark(); });
+$('wa').addEventListener('click', () => { $('wa').href = 'https://wa.me/?text=' + encodeURIComponent($('msg').value); });
+$('copy').addEventListener('click', () => copyText($('msg').value, $('msg'), 'toast', 'Copied. Paste it in WhatsApp.'));
+
+$('dlOne').addEventListener('click', () => saveFile(fname(cls, month), toCsv(table(cls, month))));
+$('dlAll').addEventListener('click', () => saveFile(fname('all', month), CLASSES.map(c => toCsv(table(c, month))).join('\r\n\r\n')));
+$('copyTsv').addEventListener('click', () => {
+  const ta = document.createElement('textarea'); ta.value = toTsv(table(cls, month)); ta.style.cssText='position:fixed;opacity:0;left:0;top:0'; document.body.appendChild(ta);
+  copyText(ta.value, ta, 'toastR', 'Table copied. Paste it into Google Sheets or Excel.').finally(()=>setTimeout(()=>ta.remove(),50));
+});
+
+$('elist').addEventListener('input', e => {
+  const i = e.target.closest('input'); if (!i) return;
+  const r = +i.dataset.r, row = rows(cls).find(x=>x[0]===r), k = cls+'-'+r, v = i.value.trim();
+  if (v === '' || v === row[2]) delete over[k]; else over[k] = v;
+  i.classList.toggle('changed', v !== '' && v !== row[2]);
+  saveOver(); manual = false; renderMark();
+});
+$('resetFix').addEventListener('click', () => { Object.keys(over).forEach(k => { if (k.startsWith(cls+'-')) delete over[k]; }); saveOver(); buildEdit(); manual = false; renderMark(); toast('toast2','Class '+cls+' names reset.'); });
+$('copyFix').addEventListener('click', () => {
+  const lines = [];
+  Object.keys(over).sort().forEach(k => { const [c,r] = k.split('-'); const row = rows(+c).find(x=>x[0]===+r); if (row) lines.push(`Class ${c}, roll ${r}: ${row[1]} = ${over[k]}`); });
+  if (!lines.length){ toast('toast2','No corrections yet.'); return; }
+  const ta = document.createElement('textarea'); ta.value = lines.join('\n'); ta.style.cssText='position:fixed;opacity:0;left:0;top:0'; document.body.appendChild(ta);
+  copyText(ta.value, ta, 'toast2', lines.length+' correction(s) copied.').finally(()=>setTimeout(()=>ta.remove(),50));
+});
+
+$('bkCopy').addEventListener('click', () => {
+  const ta = document.createElement('textarea'); ta.value = JSON.stringify({v:1, rec, names:over}); ta.style.cssText='position:fixed;opacity:0;left:0;top:0'; document.body.appendChild(ta);
+  copyText(ta.value, ta, 'toast3', 'Backup copied.').finally(()=>setTimeout(()=>ta.remove(),50));
+});
+$('bkMerge').addEventListener('click', () => {
+  try {
+    const o = JSON.parse($('bkText').value.trim());
+    if (!o || typeof o.rec !== 'object') throw 0;
+    Object.assign(rec, o.rec); if (o.names && typeof o.names==='object') Object.assign(over, o.names);
+    saveRec(); saveOver(); $('bkText').value=''; buildEdit(); loadDay(); refresh();
+    toast('toast3', 'Merged '+Object.keys(o.rec).length+' saved day(s).');
+  } catch(e){ toast('toast3','That is not a valid backup.'); }
+});
+
+// start: today's date, an example absence list (not saved until you tap Save)
+buildTabs(); buildGrid(); buildEdit();
+$('month').value = month;
+const saved0 = rec[rk(date,cls)];
+if (saved0){ example = false; loadDay(); } else { $('rolls').value = '5, 17, 30'; const p0 = parseRolls($('rolls').value); absent = p0.ok; invalid = p0.bad; }
+renderMark();
+</script>
