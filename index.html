@@ -246,6 +246,15 @@ details.edit textarea{min-height:90px;font-size:14px}
 <details class="edit" id="editBox">
   <summary>Students and names</summary>
   <div class="edit-body">
+    <form class="addbox" id="lockBox" autocomplete="off">
+      <div class="lbl">Password needed</div>
+      <p class="hint" id="lockMsg" style="margin:0"></p>
+      <input type="password" id="pw1" placeholder="Password" autocomplete="off">
+      <input type="password" id="pw2" placeholder="Type the new password again" autocomplete="off" hidden>
+      <button class="btn primary" id="lockBtn" type="submit">Unlock</button>
+      <p class="toast" id="toastL" role="status"></p>
+    </form>
+    <div id="mgBody" hidden style="display:flex;flex-direction:column;gap:12px">
     <p class="hint" style="margin:0"><b>Class <span id="mgCls"></span>.</b> Fix any spelling, add a new student or remove one. Everything saves by itself and reaches every teacher's phone within about 20 seconds.</p>
     <div class="addbox">
       <div class="lbl">Add a new student</div>
@@ -260,6 +269,13 @@ details.edit textarea{min-height:90px;font-size:14px}
     <div class="lbl" id="remLabel" hidden>Removed students</div>
     <div id="rlist" style="display:flex;flex-direction:column;gap:10px"></div>
     <p class="toast" id="toast2" role="status"></p>
+    <div class="addbox">
+      <div class="lbl">Password</div>
+      <input type="password" id="newPw" placeholder="New password (at least 4 characters)" autocomplete="off">
+      <div class="two"><button class="btn" id="chgPw" type="button">Change password</button><button class="btn" id="lockNow" type="button">Lock now</button></div>
+      <p class="toast" id="toastP" role="status"></p>
+    </div>
+    </div>
   </div>
 </details>
 
@@ -273,7 +289,7 @@ details.edit textarea{min-height:90px;font-size:14px}
     <p class="toast" id="toast3" role="status"></p>
   </div>
 </details>
-<p class="hint" id="ver" style="text-align:center;margin:0">App version 20 · 3 Nov 2026</p>
+<p class="hint" id="ver" style="text-align:center;margin:0">App version 21 · 3 Nov 2026</p>
 </div>
 <div class="bar" id="bar">
   <p class="toast" id="toast" role="status"></p>
@@ -307,8 +323,10 @@ let overE = {}, extra = {}, gone = {};
 try { overE = JSON.parse(LS.get('jvm-att-namesE','{}')) || {}; } catch(e){}
 try { extra = JSON.parse(LS.get('jvm-att-extra','{}')) || {}; } catch(e){}
 try { gone = JSON.parse(LS.get('jvm-att-gone','{}')) || {}; } catch(e){}
-const T = {N: over, E: overE, S: extra, R: gone};   // N Marathi name fix, E English name fix, S added student, R removed student
-const PERSIST = {N:'jvm-att-names', E:'jvm-att-namesE', S:'jvm-att-extra', R:'jvm-att-gone'};
+let pass = {};
+try { pass = JSON.parse(LS.get('jvm-att-pass','{}')) || {}; } catch(e){}
+const T = {N: over, E: overE, S: extra, R: gone, P: pass};   // N Marathi name fix, E English name fix, S added student, R removed student
+const PERSIST = {N:'jvm-att-names', E:'jvm-att-namesE', S:'jvm-att-extra', R:'jvm-att-gone', P:'jvm-att-pass'};
 const persist = p => LS.set(PERSIST[p], JSON.stringify(T[p]));
 const persistAll = () => Object.keys(T).forEach(persist);
 let rosterCache = {};
@@ -638,6 +656,34 @@ $('rlist').addEventListener('click', e => {
   const r = +b.dataset.r, row = rows(cls).find(x => x[0] === r);
   delKV('R', cls+'-'+r); afterRoster(); toast('toast2', `${row[1]} restored in Class ${cls}.`);
 });
+let unlocked = false;
+const hashPw = p => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; const str = 'jvm-cbse|' + p; for (let i = 0; i < str.length; i++){ const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); } h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909); h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909); return (4294967296 * (2097151 & h2) + (h1>>>0)).toString(36); };
+function renderLock(){
+  const has = !!pass.pin;
+  $('mgBody').hidden = !unlocked; $('lockBox').hidden = unlocked;
+  if (!unlocked){
+    $('lockMsg').textContent = has ? 'Enter the password to add, remove or edit students.' : 'No password is set yet. Create one now so that only you can change the students.';
+    $('pw2').hidden = has; $('lockBtn').textContent = has ? 'Unlock' : 'Set password';
+  } else buildEdit();
+}
+$('lockBox').addEventListener('submit', e => {
+  e.preventDefault(); const p = $('pw1').value;
+  if (pass.pin){
+    if (hashPw(p) !== pass.pin){ toast('toastL','Wrong password.'); $('pw1').value=''; return; }
+  } else {
+    if (p.length < 4){ toast('toastL','Use at least 4 characters.'); return; }
+    if (p !== $('pw2').value){ toast('toastL','The two passwords do not match.'); return; }
+    setKV('P','pin',hashPw(p));
+  }
+  unlocked = true; $('pw1').value = ''; $('pw2').value = ''; renderLock();
+});
+$('chgPw').addEventListener('click', () => {
+  const p = $('newPw').value;
+  if (p.length < 4){ toast('toastP','Use at least 4 characters.'); return; }
+  setKV('P','pin',hashPw(p)); $('newPw').value = ''; toast('toastP','Password changed on all phones.');
+});
+$('lockNow').addEventListener('click', () => { unlocked = false; renderLock(); $('editBox').open = false; });
+$('editBox').addEventListener('toggle', () => { if (!$('editBox').open && unlocked){ unlocked = false; renderLock(); } });
 function afterRoster(){
   invalidateRoster(); buildGrid(); buildEdit(); updateTabs();
   absent = new Set([...absent].filter(r => has(cls, r))); 
@@ -684,7 +730,7 @@ function ensureMeta(){
   Object.keys(T).forEach(p => Object.keys(T[p]).forEach(k => { if (!meta[p+'|'+k]){ meta[p+'|'+k] = {t:nowT(), d:0, p:false}; ch = true; } }));
   if (ch) saveMeta();
 }
-const isKV = k => k.length > 2 && k[1] === '|' && 'NESR'.includes(k[0]);
+const isKV = k => k.length > 2 && k[1] === '|' && 'NESRP'.includes(k[0]);
 const valueOf = k => isKV(k) ? (k[0] === 'S' ? T.S[k.slice(2)] : [T[k[0]][k.slice(2)]]) : (rec[k] || []);
 let qt = null;
 function queueSync(){ if (!sync.url || !sync.token) return; clearTimeout(qt); qt = setTimeout(doSync, 1200); }
@@ -716,7 +762,7 @@ async function doSync(){
       if (namesChanged){ invalidateRoster(); buildGrid(); updateTabs(); absent = new Set([...absent].filter(x => has(cls, x))); }
       if (clean) loadDay();
       const ae = document.activeElement;
-      if (namesChanged && !(ae && ae.closest && ae.closest('#elist'))) buildEdit();
+      if (namesChanged && !(ae && ae.closest && ae.closest('#elist'))) { if (unlocked) buildEdit(); if (!unlocked) renderLock(); }
       refresh();
     }
     setSync('ok');
@@ -769,7 +815,7 @@ setInterval(dayCheck, 30000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dayCheck(); });
 window.addEventListener('error', e => { if (e && e.message) $('errBar').hidden = false; });
 // start: today's date, an example absence list (not saved until you tap Save)
-buildTabs(); buildGrid(); buildEdit();
+buildTabs(); buildGrid(); renderLock();
 $('month').value = month;
 $('optWarn').checked = LS.get('jvm-att-warn','1') !== '0';
 { const lp = LS.get('jvm-att-low',''); if (lp) $('lowPct').value = lp; }
