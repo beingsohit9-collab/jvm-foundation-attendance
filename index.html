@@ -497,8 +497,9 @@ $('bkMerge').addEventListener('click', () => {
 });
 
 // ---- sync with the shared Google Sheet ----
-const SYNC_URL = '';   // optional: paste the sync link here so teachers only type the school code
-const sync = {url: SYNC_URL || LS.get('jvm-att-url',''), token: LS.get('jvm-att-token',''), since: +LS.get('jvm-att-since','0') || 0, busy:false, again:false};
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxXVWWkyTl7K9NF5hzUxRRVbTko-M2W3tRE522zkxhhNu84_SVq5kbBXQRzurB8OwhRCw/exec';    // paste the Web app link (ends with /exec) between the quotes
+const SYNC_CODE = 'jvm2026';   // paste the school code between the quotes; with both filled in, no phone needs any setup
+const sync = {url: SYNC_URL || LS.get('jvm-att-url',''), token: SYNC_CODE || LS.get('jvm-att-token',''), since: +LS.get('jvm-att-since','0') || 0, busy:false, again:false};
 const hhmm = () => new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
 function setSync(state, note){
   const t = {off:'Not connected. Attendance is saved on this device only.', syncing:'Syncing...', ok:'Up to date at '+hhmm()+'.', offline:'Offline. Changes are saved here and will upload when you are online.', badcode:'Wrong school code. Open "Sync between devices" to fix it.', error:'Problem: '+(note||'unknown')}[state];
@@ -564,6 +565,7 @@ $('syncOff').addEventListener('click', () => {
   $('syncToken').value = ''; if (!SYNC_URL) $('syncUrl').value = ''; setSync('off'); toast('toast4','This device is disconnected. Saved attendance stays on it.');
 });
 if (SYNC_URL) $('urlRow').hidden = true; else $('syncUrl').value = sync.url;
+if (SYNC_URL && SYNC_CODE) $('syncBox').hidden = true;
 if (sync.token) $('syncToken').placeholder = 'Saved on this device';
 setSync(sync.url && sync.token ? 'syncing' : 'off');
 if (sync.url && sync.token) doSync();
