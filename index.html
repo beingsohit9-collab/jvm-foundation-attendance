@@ -96,6 +96,8 @@ table.rt{border-collapse:separate;border-spacing:0;font-size:.8rem;min-width:100
 .sum{font-size:.95rem;margin:0}
 .sum b{font-variant-numeric:tabular-nums}
 .sample[hidden],.status[hidden]{display:none}
+.txt{min-width:0;width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px 12px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);-webkit-appearance:none;appearance:none}
+.syncline{margin:-8px 0 0;font-size:.85rem;color:var(--muted)}
 .brand{display:flex;align-items:center;gap:12px}
 .brand img{width:60px;height:60px;object-fit:contain;flex:none}
 .brand div{min-width:0}
@@ -115,6 +117,8 @@ details.edit textarea{min-height:90px;font-size:14px}
     <p>JVM CBSE &amp; Foundation, Murud. Mark daily absentees, send the WhatsApp message, and download the monthly register.</p>
   </div>
 </header>
+
+<p class="syncline" id="syncLine"></p>
 
 <div class="views" role="tablist">
   <button class="vbtn" id="vMark" role="tab" type="button" aria-selected="true">Mark attendance</button>
@@ -197,6 +201,18 @@ details.edit textarea{min-height:90px;font-size:14px}
   <p class="note">Attendance is saved on the phone or computer you use, in this browser. Each teacher's device keeps its own register. Use Backup below to move or combine records.</p>
 </div>
 
+<details class="edit" id="syncBox">
+  <summary>Sync between devices</summary>
+  <div class="edit-body">
+    <p class="hint" style="margin:0">Connect this device to the school's shared Google Sheet. Every connected phone then shows the same attendance within about 20 seconds. Attendance is also kept on this device, so you can mark it without internet and it uploads later.</p>
+    <div id="urlRow"><p class="label">Sync link</p><input class="txt" id="syncUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Sync link"></div>
+    <div><p class="label">School code</p><input class="txt" id="syncToken" type="password" placeholder="Type the school code" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="School code"></div>
+    <div class="row2"><button class="btn primary" id="syncSave" type="button">Connect</button><button class="btn" id="syncNow" type="button">Sync now</button></div>
+    <button class="btn" id="syncOff" type="button">Disconnect this device</button>
+    <p class="toast" id="toast4" role="status"></p>
+  </div>
+</details>
+
 <details class="edit" id="editBox">
   <summary>Edit Marathi names</summary>
   <div class="edit-body">
@@ -240,6 +256,13 @@ try { rec = JSON.parse(LS.get('jvm-att-rec','{}')) || {}; } catch(e){}
 const savedClass = +LS.get('jvm-att-class',''); if (CLASSES.includes(savedClass)) cls = savedClass;
 const saveOver = () => LS.set('jvm-att-names', JSON.stringify(over));
 const saveRec = () => LS.set('jvm-att-rec', JSON.stringify(rec));
+let meta = {}; try { meta = JSON.parse(LS.get('jvm-att-meta','{}')) || {}; } catch(e){}
+const saveMeta = () => LS.set('jvm-att-meta', JSON.stringify(meta));
+const touch = (k, d) => { meta[k] = {t: Math.max(Date.now(), ((meta[k]||{}).t||0) + 1), d: d?1:0, p: false}; };
+function setRec(k, v){ rec[k] = v; touch(k,0); saveRec(); saveMeta(); queueSync(); }
+function delRec(k){ if (rec[k] !== undefined){ delete rec[k]; touch(k,1); saveRec(); saveMeta(); queueSync(); } }
+function setName(k, v){ over[k] = v; touch('N|'+k,0); saveOver(); saveMeta(); queueSync(); }
+function delName(k){ if (over[k] !== undefined){ delete over[k]; touch('N|'+k,1); saveOver(); saveMeta(); queueSync(); } }
 const rows = c => ROSTER[c];
 const rk = (d,c) => d+'|'+c;
 const has = (c,r) => rows(c).some(x => x[0]===r);
@@ -399,12 +422,12 @@ $('grid').addEventListener('click', e => {
 $('rolls').addEventListener('input', () => { example = false; const p = parseRolls($('rolls').value); absent = p.ok; invalid = p.bad; manual = false; renderMark(); });
 $('clear').addEventListener('click', () => { example = false; absent = new Set(); invalid = []; manual = false; $('rolls').value=''; renderMark(); $('rolls').focus(); });
 $('save').addEventListener('click', () => {
-  rec[rk(date,cls)] = [...absent].sort((a,b)=>a-b); saveRec(); example = false; renderMark();
+  setRec(rk(date,cls), [...absent].sort((a,b)=>a-b)); example = false; renderMark();
   toast('toastS', `Saved: Class ${cls}, ${dateLabel(date)}.`);
 });
 $('holBtn').addEventListener('click', () => {
   const b = $('holBtn'), key = rk(date,'H');
-  if (rec[key]){ delete rec[key]; saveRec(); renderMark(); toast('toastS','Holiday removed.'); return; }
+  if (rec[key]){ delRec(key); renderMark(); toast('toastS','Holiday removed.'); return; }
   const anyRec = CLASSES.some(c => rec[rk(date,c)]);
   if (anyRec && !b.dataset.armed){
     b.textContent = 'Tap again: this deletes the saved attendance for this date'; b.style.cssText='margin-top:8px;width:100%;border-color:var(--red);color:var(--red)';
@@ -412,7 +435,7 @@ $('holBtn').addEventListener('click', () => {
     return;
   }
   if (b.dataset.armed){ clearTimeout(+b.dataset.armed); delete b.dataset.armed; b.style.cssText='margin-top:8px;width:100%'; }
-  CLASSES.forEach(c => delete rec[rk(date,c)]); rec[key] = ['H']; saveRec();
+  CLASSES.forEach(c => delRec(rk(date,c))); setRec(key, ['H']);
   example = false; absent = new Set(); invalid = []; manual = false; $('rolls').value = '';
   renderMark(); toast('toastS','Marked as a holiday for all classes.');
 });
@@ -425,11 +448,11 @@ function armed(btn, action){
   });
 }
 function afterDelete(msg){
-  saveRec(); example = false; absent = new Set(); invalid = []; manual = false; $('rolls').value = '';
+  example = false; absent = new Set(); invalid = []; manual = false; $('rolls').value = '';
   renderMark(); toast('toastS', msg);
 }
-armed($('delOne'), () => { delete rec[rk(date,cls)]; afterDelete(`Deleted: Class ${cls}, ${dateLabel(date)}.`); });
-armed($('delAll'), () => { CLASSES.forEach(c => delete rec[rk(date,c)]); afterDelete(`Deleted all classes for ${dateLabel(date)}.`); });
+armed($('delOne'), () => { delRec(rk(date,cls)); afterDelete(`Deleted: Class ${cls}, ${dateLabel(date)}.`); });
+armed($('delAll'), () => { CLASSES.forEach(c => delRec(rk(date,c))); afterDelete(`Deleted all classes for ${dateLabel(date)}.`); });
 $('optClass').addEventListener('change', () => { manual = false; renderMark(); });
 $('msg').addEventListener('input', () => { manual = true; renderMark(); });
 $('regen').addEventListener('click', e => { e.preventDefault(); manual = false; renderMark(); });
@@ -446,11 +469,11 @@ $('copyTsv').addEventListener('click', () => {
 $('elist').addEventListener('input', e => {
   const i = e.target.closest('input'); if (!i) return;
   const r = +i.dataset.r, row = rows(cls).find(x=>x[0]===r), k = cls+'-'+r, v = i.value.trim();
-  if (v === '' || v === row[2]) delete over[k]; else over[k] = v;
+  if (v === '' || v === row[2]) delName(k); else setName(k, v);
   i.classList.toggle('changed', v !== '' && v !== row[2]);
-  saveOver(); manual = false; renderMark();
+  manual = false; renderMark();
 });
-$('resetFix').addEventListener('click', () => { Object.keys(over).forEach(k => { if (k.startsWith(cls+'-')) delete over[k]; }); saveOver(); buildEdit(); manual = false; renderMark(); toast('toast2','Class '+cls+' names reset.'); });
+$('resetFix').addEventListener('click', () => { Object.keys(over).forEach(k => { if (k.startsWith(cls+'-')) delName(k); }); buildEdit(); manual = false; renderMark(); toast('toast2','Class '+cls+' names reset.'); });
 $('copyFix').addEventListener('click', () => {
   const lines = [];
   Object.keys(over).sort().forEach(k => { const [c,r] = k.split('-'); const row = rows(+c).find(x=>x[0]===+r); if (row) lines.push(`Class ${c}, roll ${r}: ${row[1]} = ${over[k]}`); });
@@ -467,11 +490,86 @@ $('bkMerge').addEventListener('click', () => {
   try {
     const o = JSON.parse($('bkText').value.trim());
     if (!o || typeof o.rec !== 'object') throw 0;
-    Object.assign(rec, o.rec); if (o.names && typeof o.names==='object') Object.assign(over, o.names);
-    saveRec(); saveOver(); $('bkText').value=''; buildEdit(); loadDay(); refresh();
+    Object.keys(o.rec).forEach(k => setRec(k, o.rec[k])); if (o.names && typeof o.names==='object') Object.keys(o.names).forEach(k => setName(k, o.names[k]));
+    $('bkText').value=''; buildEdit(); loadDay(); refresh();
     toast('toast3', 'Merged '+Object.keys(o.rec).length+' saved day(s).');
   } catch(e){ toast('toast3','That is not a valid backup.'); }
 });
+
+// ---- sync with the shared Google Sheet ----
+const SYNC_URL = '';   // optional: paste the sync link here so teachers only type the school code
+const sync = {url: SYNC_URL || LS.get('jvm-att-url',''), token: LS.get('jvm-att-token',''), since: +LS.get('jvm-att-since','0') || 0, busy:false, again:false};
+const hhmm = () => new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+function setSync(state, note){
+  const t = {off:'Not connected. Attendance is saved on this device only.', syncing:'Syncing...', ok:'Up to date at '+hhmm()+'.', offline:'Offline. Changes are saved here and will upload when you are online.', badcode:'Wrong school code. Open "Sync between devices" to fix it.', error:'Problem: '+(note||'unknown')}[state];
+  const col = state==='ok' ? 'var(--ok)' : (state==='badcode'||state==='error') ? 'var(--red)' : 'var(--muted)';
+  $('syncLine').innerHTML = `<span style="color:${col}">&#9679;</span> Sync: ${esc(t)}`;
+}
+function ensureMeta(){
+  let ch = false;
+  Object.keys(rec).forEach(k => { if (!meta[k]){ meta[k] = {t:Date.now(), d:0, p:false}; ch = true; } });
+  Object.keys(over).forEach(k => { if (!meta['N|'+k]){ meta['N|'+k] = {t:Date.now(), d:0, p:false}; ch = true; } });
+  if (ch) saveMeta();
+}
+const valueOf = k => k.startsWith('N|') ? [over[k.slice(2)]] : (rec[k] || []);
+let qt = null;
+function queueSync(){ if (!sync.url || !sync.token) return; clearTimeout(qt); qt = setTimeout(doSync, 1200); }
+async function doSync(){
+  if (!sync.url || !sync.token){ setSync('off'); return; }
+  if (sync.busy){ sync.again = true; return; }
+  sync.busy = true; setSync('syncing');
+  try {
+    ensureMeta();
+    const sent = Object.keys(meta).filter(k => !meta[k].p).map(k => ({k, v: meta[k].d ? [] : valueOf(k), t: meta[k].t, d: meta[k].d ? 1 : 0}));
+    const res = await fetch(sync.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({token:sync.token, since:sync.since, changes:sent})});
+    const j = await res.json();
+    if (!j.ok){ if (j.error === 'bad_token'){ setSync('badcode'); return; } throw new Error(j.error || 'server'); }
+    sent.forEach(c => { if (meta[c.k] && meta[c.k].t === c.t) meta[c.k].p = true; });
+    const cur = rec[rk(date,cls)];
+    const clean = cur ? sameSet(absent, cur) : (example || absent.size === 0);
+    let applied = false, namesChanged = false;
+    (j.rows || []).forEach(r => {
+      const m = meta[r.k]; if (m && r.t <= m.t) return;
+      if (r.k.startsWith('N|')){ const nk = r.k.slice(2); if (r.d) delete over[nk]; else over[nk] = r.v[0]; namesChanged = true; }
+      else { if (r.d) delete rec[r.k]; else rec[r.k] = r.v; }
+      meta[r.k] = {t:r.t, d:r.d?1:0, p:true}; applied = true;
+    });
+    sync.since = j.now; LS.set('jvm-att-since', String(sync.since)); saveMeta();
+    if (applied){
+      saveRec(); saveOver();
+      if (clean) loadDay();
+      const ae = document.activeElement;
+      if (namesChanged && !(ae && ae.closest && ae.closest('#elist'))) buildEdit();
+      refresh();
+    }
+    setSync('ok');
+  } catch(e){
+    setSync((navigator.onLine === false || /fetch|network|failed|load/i.test(String(e))) ? 'offline' : 'error', e && e.message);
+  } finally {
+    sync.busy = false; if (sync.again){ sync.again = false; queueSync(); }
+  }
+}
+$('syncSave').addEventListener('click', () => {
+  const u = SYNC_URL || $('syncUrl').value.trim(), t = $('syncToken').value.trim();
+  if (!u || !t){ toast('toast4','Enter the sync link and the school code.'); return; }
+  if (!/^https:\/\//.test(u)){ toast('toast4','The sync link must start with https://'); return; }
+  sync.url = u; sync.token = t; sync.since = 0;
+  LS.set('jvm-att-url', u); LS.set('jvm-att-token', t); LS.set('jvm-att-since','0');
+  ensureMeta(); Object.keys(meta).forEach(k => { meta[k].p = false; }); saveMeta();
+  toast('toast4','Connecting...'); doSync();
+});
+$('syncNow').addEventListener('click', () => { if (!sync.url || !sync.token) toast('toast4','Connect first.'); doSync(); });
+$('syncOff').addEventListener('click', () => {
+  sync.token = ''; if (!SYNC_URL) sync.url = ''; LS.set('jvm-att-token',''); LS.set('jvm-att-url', SYNC_URL ? '' : '');
+  $('syncToken').value = ''; if (!SYNC_URL) $('syncUrl').value = ''; setSync('off'); toast('toast4','This device is disconnected. Saved attendance stays on it.');
+});
+if (SYNC_URL) $('urlRow').hidden = true; else $('syncUrl').value = sync.url;
+if (sync.token) $('syncToken').placeholder = 'Saved on this device';
+setSync(sync.url && sync.token ? 'syncing' : 'off');
+if (sync.url && sync.token) doSync();
+setInterval(() => { if (document.visibilityState === 'visible') doSync(); }, 20000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') doSync(); });
+window.addEventListener('online', doSync);
 
 // logo: try common file names so a different spelling still works
 (function(){
