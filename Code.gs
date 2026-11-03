@@ -1,7 +1,7 @@
 // JVM Foundation Attendance - shared storage
 // Paste this whole file into Extensions > Apps Script in the Google Sheet, change SECRET, then deploy as a Web app.
 
-const SECRET = 'CHANGE-THIS-CODE';   // the school code teachers type once on their phone
+const SECRET = 'jvm2026';   // the school code teachers type once on their phone
 const SHEET_NAME = 'Records';
 
 function getSheet_() {
