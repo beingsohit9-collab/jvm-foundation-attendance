@@ -225,7 +225,7 @@ body.hasbar{padding-bottom:132px}
   <p class="label">Choose your class</p>
   <div class="tabs big" id="tabs"></div>
   <button class="btn adminbtn" id="adminBtn" type="button">Admin dashboard</button>
-  <p class="hint" id="ver" style="text-align:center;margin:0">App version 26 · 3 Nov 2026</p>
+  <p class="hint" id="ver" style="text-align:center;margin:0">App version 27 · 4 Nov 2026</p>
 </section>
 <section id="classScr" class="screen" hidden>
   <div class="top"><button class="btn" id="clsBack" type="button">&lsaquo; Home</button><div class="ttl"><b id="clsTitle">Class</b><span>Attendance</span></div></div>
@@ -996,6 +996,31 @@ const saved0 = rec[rk(date,cls)];
 if (saved0){ example = false; loadDay(); } else { example = false; }
 renderMark();
 route();
+
+// ---------- self-update: the installed app checks GitHub for a newer version ----------
+const APP_V = 27;
+let lastVerCheck = 0;
+async function checkUpdate(force){
+  if (navigator.onLine === false || location.protocol === 'file:') return;
+  if (!force && Date.now() - lastVerCheck < 60000) return;
+  lastVerCheck = Date.now();
+  try {
+    const r = await fetch(location.pathname + '?chk=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) return;
+    const m = /const APP_V = (\d+);/.exec(await r.text());
+    if (!m || +m[1] <= APP_V) return;
+    const busy = screen !== 'home' && absent.size > 0 && !sameSet(absent, rec[rk(date,cls)] || []);
+    if (busy) return;
+    let n = 0; try { n = +(sessionStorage.getItem('jvm-upd') || 0); } catch(e){}
+    if (n >= 3) return;
+    try { sessionStorage.setItem('jvm-upd', String(n + 1)); } catch(e){}
+    location.replace(location.pathname + '?v=' + m[1] + location.hash);
+  } catch(e){}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(false); });
+window.addEventListener('online', () => checkUpdate(true));
+setInterval(() => { if (document.visibilityState === 'visible') checkUpdate(false); }, 300000);
+checkUpdate(true);
 </script>
 
 </body>
