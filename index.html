@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Sohit Shaikh">
+<meta name="copyright" content="2026 JVM CBSE &amp; FOUNDATION, Murud. All rights reserved.">
 <meta name="theme-color" content="#0c3472">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -209,6 +211,11 @@ body.hasbar{padding-bottom:132px}
 #classScr .panel{padding:10px 14px}
 #classScr textarea{min-height:170px}
 #classScr .opts{margin-bottom:6px}
+
+.credit{text-align:center;margin-top:6px;color:var(--muted);font-size:.78rem;line-height:1.5}
+.credit p{margin:0}
+.credit b{color:var(--fg);font-weight:600}
+.credit .ver{font-size:.7rem;opacity:.8}
 </style>
 
 <style>html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
@@ -225,7 +232,12 @@ body.hasbar{padding-bottom:132px}
   <p class="label">Choose your class</p>
   <div class="tabs big" id="tabs"></div>
   <button class="btn adminbtn" id="adminBtn" type="button">Admin dashboard</button>
-  <p class="hint" id="ver" style="text-align:center;margin:0">App version 29 · 4 Nov 2026</p>
+  <footer class="credit">
+    <p>Developed by <b>Sohit Shaikh</b></p>
+    <p>&copy; 2026 JVM CBSE &amp; FOUNDATION, Murud</p>
+    <p>All rights reserved</p>
+    <p class="ver" id="ver">App version 30 &middot; 4 Nov 2026</p>
+  </footer>
 </section>
 <section id="classScr" class="screen" hidden>
   <div class="top"><button class="btn" id="clsBack" type="button">&lsaquo; Home</button><div class="ttl"><b id="clsTitle">Class</b><span>Attendance</span></div></div>
@@ -1051,7 +1063,7 @@ renderMark();
 route();
 
 // ---------- self-update: the installed app checks GitHub for a newer version ----------
-const APP_V = 29;
+const APP_V = 30;
 let lastVerCheck = 0;
 async function checkUpdate(force){
   if (navigator.onLine === false || location.protocol === 'file:') return;
