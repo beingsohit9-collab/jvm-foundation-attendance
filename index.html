@@ -225,7 +225,7 @@ body.hasbar{padding-bottom:132px}
   <p class="label">Choose your class</p>
   <div class="tabs big" id="tabs"></div>
   <button class="btn adminbtn" id="adminBtn" type="button">Admin dashboard</button>
-  <p class="hint" id="ver" style="text-align:center;margin:0">App version 25 · 3 Nov 2026</p>
+  <p class="hint" id="ver" style="text-align:center;margin:0">App version 26 · 3 Nov 2026</p>
 </section>
 <section id="classScr" class="screen" hidden>
   <div class="top"><button class="btn" id="clsBack" type="button">&lsaquo; Home</button><div class="ttl"><b id="clsTitle">Class</b><span>Attendance</span></div></div>
@@ -277,6 +277,7 @@ body.hasbar{padding-bottom:132px}
     <textarea id="msg" aria-label="Generated message" spellcheck="false"></textarea>
     <p class="hint" id="edited" hidden>You edited the message by hand, so it will not change when you change the roll numbers. <a href="#" id="regen">Regenerate it</a></p>
   </section>
+  <p class="hint" id="delHint" style="text-align:center">Saved by mistake, or it was a holiday? <a href="#admin" id="toRec">Delete it from the Admin dashboard</a></p>
   </div>
 </div>
 
@@ -295,7 +296,7 @@ body.hasbar{padding-bottom:132px}
       <button class="vbtn" role="tab" type="button" data-p="ov" aria-selected="true">Overview</button>
       <button class="vbtn" role="tab" type="button" data-p="rep" aria-selected="false">Monthly report</button>
       <button class="vbtn" role="tab" type="button" data-p="stu" aria-selected="false">Students</button>
-      <button class="vbtn" role="tab" type="button" data-p="rec" aria-selected="false">Records</button>
+      <button class="vbtn" role="tab" type="button" data-p="rec" aria-selected="false">Delete &amp; holiday</button>
       <button class="vbtn" role="tab" type="button" data-p="set" aria-selected="false">Sync &amp; backup</button>
     </div>
     <div class="pane" id="ovPane">
@@ -350,7 +351,7 @@ body.hasbar{padding-bottom:132px}
   <p class="toast" id="toast2" role="status"></p>
 </div>
     <div class="pane" id="recPane" hidden>
-  <p class="hint" style="margin:0">Mark a holiday or delete a record saved by mistake. A deleted day no longer counts as a day held in the monthly report.</p>
+  <p class="hint" style="margin:0">Pick the date, then tap Delete next to the class whose attendance was saved by mistake (tap twice to confirm). You can also mark the whole day as a holiday. A deleted day no longer counts as a day held in the monthly report.</p>
   <div class="dates"><input id="adDate" type="date" aria-label="Date"></div>
   <div class="panel" id="recList"></div>
   <p class="toast" id="toastD" role="status"></p>
@@ -761,7 +762,9 @@ function route(){
   else goHome();
 }
 window.addEventListener('hashchange', route);
-$('adminBtn').addEventListener('click', () => { location.hash = '#admin'; });
+let wantRec = null;
+$('adminBtn').addEventListener('click', () => { wantRec = null; location.hash = '#admin'; });
+$('toRec').addEventListener('click', e => { e.preventDefault(); wantRec = date; location.hash = '#admin'; });
 $('adBack').addEventListener('click', () => { location.hash = '#home'; });
 $('clsBack').addEventListener('click', () => {
   const unsaved = absent.size > 0 && !example && !sameSet(absent, rec[rk(date,cls)] || []);
@@ -772,8 +775,8 @@ $('adLogin').addEventListener('submit', e => {
   e.preventDefault();
   if (ADMIN_HASH.f($('adPw').value) !== ADMIN_HASH.ok){ toast('toastL','Wrong password.'); $('adPw').value = ''; return; }
   adminOn = true; $('adPw').value = ''; $('adLogin').hidden = true; $('adBody').hidden = false;
-  month = istToday().slice(0,7); $('month').value = month; $('adDate').value = istToday(); $('adDate').max = istToday();
-  admTab('ov');
+  month = istToday().slice(0,7); $('month').value = month; $('adDate').value = wantRec || istToday(); $('adDate').max = istToday();
+  const goRec = !!wantRec; wantRec = null; admTab(goRec ? 'rec' : 'ov');
 });
 // ---------- admin ----------
 let mcls = 7, rcls = 7, adPane = 'ov';
