@@ -168,6 +168,47 @@ body.home{background:var(--homebg)}
 .chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
 .rrow{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
 #holBtn,#delRow{display:none!important}
+
+.home{gap:10px;padding-top:0}
+.home-logo{width:min(46vw,190px,26vh);margin:0 auto}
+.home h1{font-size:clamp(1.35rem,6.2vw,1.8rem)}
+.home .sub{margin:-4px 0 0;font-size:.95rem}
+.home .syncline{font-size:.78rem;margin:0}
+.home .label{margin:2px 0 0}
+.tabs.big{grid-template-columns:repeat(6,1fr);gap:10px}
+.tabs.big .tab{grid-column:span 2;min-height:76px;padding:12px 4px;font-size:1.15rem}
+.tabs.big .tab:nth-child(4),.tabs.big .tab:nth-child(5){grid-column:span 3}
+.tabs.big .tab:last-child{grid-column:span 3}
+.adminbtn{margin-top:2px;padding:10px 22px}
+.home #ver{margin:0}
+
+body.hasbar{padding-bottom:132px}
+.barinfo{display:flex;justify-content:space-between;gap:10px;margin:0 0 8px;font-size:.9rem;font-weight:700}
+.barinfo span:first-child{color:var(--red)}
+.roll{height:48px;border-radius:12px;font-size:1.02rem;border-width:1.5px;box-shadow:0 1px 2px rgba(12,52,114,.06)}
+.roll[aria-pressed="true"]{box-shadow:none;transform:scale(.97)}
+.grid{gap:8px;grid-template-columns:repeat(auto-fill,minmax(48px,1fr))}
+.dates input,.field input{border-radius:12px}
+.dnav{border-radius:12px}
+.status{font-size:.8rem;padding:3px 10px;border-radius:999px}
+#classScr .panel{border-radius:14px}
+#classScr .hint{margin:4px 0 0}
+#msgBox{border-radius:14px}
+.top .btn{border-radius:12px}
+
+#msgBox{border:0;border-radius:0;background:none}
+#classScr{gap:12px}
+#markView{gap:14px!important}
+#dayBody{gap:14px!important}
+#classScr .label{margin:0 0 6px}
+#classScr .dates{gap:6px}
+#classScr .dates input{font-size:.95rem;padding:6px 10px;min-height:40px;border-radius:10px}
+#classScr .dnav{min-height:40px;padding:0 13px;font-size:1.3rem;border-radius:10px}
+#classScr .hint{margin:4px 0 0;font-size:.82rem}
+#classScr .field input{font-size:1.05rem;padding:9px 12px}
+#classScr .panel{padding:10px 14px}
+#classScr textarea{min-height:170px}
+#classScr .opts{margin-bottom:6px}
 </style>
 
 <style>html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
@@ -184,7 +225,7 @@ body.home{background:var(--homebg)}
   <p class="label">Choose your class</p>
   <div class="tabs big" id="tabs"></div>
   <button class="btn adminbtn" id="adminBtn" type="button">Admin dashboard</button>
-  <p class="hint" id="ver" style="text-align:center;margin:0">App version 22 · 3 Nov 2026</p>
+  <p class="hint" id="ver" style="text-align:center;margin:0">App version 25 · 3 Nov 2026</p>
 </section>
 <section id="classScr" class="screen" hidden>
   <div class="top"><button class="btn" id="clsBack" type="button">&lsaquo; Home</button><div class="ttl"><b id="clsTitle">Class</b><span>Attendance</span></div></div>
@@ -209,7 +250,7 @@ body.home{background:var(--homebg)}
       <button class="btn" id="clear" type="button">Clear</button>
     </div>
     <p class="hint" id="bad" hidden></p>
-    <p class="hint">Separate numbers with a comma or space. Full seat numbers like 50003 also work. You can also tap the numbers below.</p>
+    <p class="hint">Tap the roll numbers below, or type them.</p>
   </section>
 
   <section aria-label="Roll number picker"><div class="grid" id="grid"></div></section>
@@ -230,7 +271,7 @@ body.home{background:var(--homebg)}
     </div>
   </details>
 
-  <section aria-label="WhatsApp message">
+  <section aria-label="WhatsApp message" id="msgBox">
     <p class="label">WhatsApp message</p>
     <div class="opts"><label><input type="checkbox" id="optClass"> Mention the class in the message</label><label><input type="checkbox" id="optWarn" checked> Add a warning for 3 or more days absent in a row</label></div>
     <textarea id="msg" aria-label="Generated message" spellcheck="false"></textarea>
@@ -335,6 +376,7 @@ body.home{background:var(--homebg)}
 </section>
 </div>
 <div class="bar" id="bar">
+  <p class="barinfo" id="barInfo" aria-live="polite"><span id="biN"></span><span id="biS"></span></p>
   <p class="toast" id="toast" role="status"></p>
   <div class="barrow">
     <button class="btn primary" id="save" type="button">Save</button>
@@ -489,13 +531,12 @@ function renderMark(opts={}){
   else if (saved){ st.textContent='Unsaved changes'; st.className='status todo'; }
   else { st.textContent='Not saved yet'; st.className='status todo'; }
   $('sample').hidden = !example;
+  $('biN').textContent = list.length ? list.length + ' absent' : 'No one absent'; $('biS').textContent = st.textContent; $('biS').style.color = st.className.includes('ok') ? 'var(--ok)' : 'var(--warn)';
   const thisRec = !!rec[rk(date,cls)], anyRec = CLASSES.some(c => rec[rk(date,c)]);
   $('delRow').hidden = !anyRec;
   $('delOne').hidden = !thisRec; $('delOne').textContent = `Delete Class ${cls}, this date`;
   $('delOne').dataset.label = $('delOne').textContent;
   $('delAll').hidden = !anyRec;
-  { const done = CLASSES.filter(c => rec[rk(date,c)]).length, tot = CLASSES.reduce((n,c) => n + (rec[rk(date,c)] || []).length, 0);
-    if (!rec[rk(date,'H')]) $('dateText').textContent += ` · ${done} of ${CLASSES.length} classes recorded` + (done ? ` · ${tot} absent in total` : ''); }
   updateTabs();
   const hol = !!rec[rk(date,'H')];
   $('dayBody').style.display = hol ? 'none' : 'flex';
