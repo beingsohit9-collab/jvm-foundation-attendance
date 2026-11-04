@@ -225,7 +225,7 @@ body.hasbar{padding-bottom:132px}
   <p class="label">Choose your class</p>
   <div class="tabs big" id="tabs"></div>
   <button class="btn adminbtn" id="adminBtn" type="button">Admin dashboard</button>
-  <p class="hint" id="ver" style="text-align:center;margin:0">App version 27 · 4 Nov 2026</p>
+  <p class="hint" id="ver" style="text-align:center;margin:0">App version 29 · 4 Nov 2026</p>
 </section>
 <section id="classScr" class="screen" hidden>
   <div class="top"><button class="btn" id="clsBack" type="button">&lsaquo; Home</button><div class="ttl"><b id="clsTitle">Class</b><span>Attendance</span></div></div>
@@ -328,6 +328,12 @@ body.hasbar{padding-bottom:132px}
     <button class="btn" id="dlAll" type="button">Download all classes (CSV)</button>
   </div>
   <button class="btn" id="copyTsv" type="button">Copy table for Google Sheets / Excel</button>
+  <div class="panel" style="display:flex;flex-direction:column;gap:8px">
+    <p class="label" style="margin:0">Printable sheet (LaTeX / Overleaf)</p>
+    <div class="row2"><button class="btn primary" id="texOne" type="button">Download .tex, this class</button><button class="btn" id="texAll" type="button">Download .tex, all classes</button></div>
+    <button class="btn" id="texCopy" type="button">Copy LaTeX code, this class</button>
+    <p class="hint" style="margin:0">Open Overleaf, make a new project, upload <b>JVM logo.png</b>, then paste this code into main.tex (or upload the .tex file). It compiles into the filled attendance sheet.</p>
+  </div>
   <p class="toast" id="toastR" role="status"></p>
   
 </div>
@@ -609,15 +615,15 @@ async function copyText(text, fallbackEl, id, okMsg){
   try { await navigator.clipboard.writeText(text); toast(id, okMsg); }
   catch(e){ try { fallbackEl.focus(); fallbackEl.select(); fallbackEl.setSelectionRange(0, 999999); } catch(_){} toast(id, 'Text selected. Tap Copy in the pop-up menu.'); }
 }
-async function saveFile(name, text){
-  const data = '﻿' + text;
+async function saveFile(name, text, plain){
+  const data = (plain ? '' : '﻿') + text;
   try {
     const d = await (window.claude && window.claude.use ? window.claude.use('downloads') : null);
     if (d){ await d.save({filename:name, data}); toast('toastR','File ready: '+name); return; }
   } catch(e){ if (e && e.code === 'declined') return; }
   try {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([data],{type:'text/csv;charset=utf-8'})); a.download = name;
+    a.href = URL.createObjectURL(new Blob([data],{type: plain ? 'text/plain;charset=utf-8' : 'text/csv;charset=utf-8'})); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
     toast('toastR','Download requested: '+name+'. If nothing downloads, use "Copy table" instead.');
   } catch(e){ toast('toastR','Download is not available here. Use "Copy table" instead.'); }
@@ -691,6 +697,53 @@ $('regen').addEventListener('click', e => { e.preventDefault(); manual = false; 
 $('wa').addEventListener('click', () => { ensureSaved(); $('wa').href = 'https://wa.me/?text=' + encodeURIComponent($('msg').value); });
 $('copy').addEventListener('click', () => { const was = ensureSaved(); copyText($('msg').value, $('msg'), 'toast', was ? 'Attendance saved and message copied. Paste it in WhatsApp.' : 'Copied. Paste it in WhatsApp.'); });
 
+
+// ---------- LaTeX sheet ----------
+const texEsc = t => String(t).replace(/\\/g,'\\textbackslash{}').replace(/([&%$#_{}])/g,'\\$1').replace(/~/g,'\\textasciitilde{}').replace(/\^/g,'\\textasciicircum{}');
+function texSheet(c, ym){
+  const R = report(c, ym), nd = R.nd, ncol = 2 + nd + 4;
+  const TW = 27.9, fixed = 0.8 + 5.7 + 4 * 1.05, padw = ncol * 0.0846 + (ncol + 1) * 0.0141 + 0.12;
+  const dw = ((TW - fixed - padw) / nd).toFixed(3);
+  const C = w => `>{\\centering\\arraybackslash}p{${w}cm}|`;
+  const spec = '|' + C('0.8') + '>{\\raggedright\\arraybackslash}p{5.7cm}|' + C(dw).repeat(nd) + C('1.05').repeat(4);
+  const hol = R.days.filter(x => x.hol).length;
+  const wp = R.list.filter(x => x.pct != null), avg = wp.length ? (wp.reduce((a,x) => a + x.pct, 0) / wp.length).toFixed(1) : '--';
+  const dayCell = d => { const col = d.hol ? '\\cellcolor{gray!45}' : d.dow === 0 ? '\\cellcolor{gray!30}' : ''; return `${col}\\shortstack{\\small\\textbf{${d.d}}\\\\[-1.5pt]{\\scriptsize ${'SMTWTFS'[d.dow]}}}`; };
+  let t = '';
+  t += `\\noindent\n\\begin{minipage}[c]{0.17\\textwidth}\n\\IfFileExists{\\logofile}{\\includegraphics[height=2.5cm,keepaspectratio]{\\logofile}}{}\n\\end{minipage}\\hfill\n`;
+  t += `\\begin{minipage}[c]{0.80\\textwidth}\n\\centering\n{\\bfseries\\fontsize{22pt}{25pt}\\selectfont JVM CBSE \\& FOUNDATION}\\\\[1pt]\n{\\fontsize{13pt}{16pt}\\selectfont Murud, Tq.\\ and Dist.\\ Latur}\\\\[3pt]\n`;
+  t += `{\\color{jvmblue}\\bfseries\\fontsize{21pt}{25pt}\\selectfont Class ${c} \\quad|\\quad ${MONTHS[R.m-1]} ${R.y}}\\\\[3pt]\n{\\bfseries\\fontsize{12pt}{14pt}\\selectfont Attendance Sheet}\\\\[3pt]\n`;
+  t += `{\\fontsize{11pt}{14pt}\\selectfont Total students: \\textbf{${R.list.length}} \\quad Days held: \\textbf{${R.held}} \\quad Holidays: \\textbf{${hol}} \\quad Class average: \\textbf{${avg}\\%}}\n\\end{minipage}\n\n\\vspace{0.12cm}\n\\hrule height 0.8pt\n\\vspace{0.12cm}\n\n`;
+  t += `{\\normalsize\\setlength{\\tabcolsep}{1.2pt}\\renewcommand{\\arraystretch}{1.38}\n\\begin{longtable}{${spec}}\n\\hline\n\\rowcolor{jvmblue!18}\n`;
+  const head = `\\textbf{No.} & \\textbf{Student Name} & ${R.days.map(dayCell).join(' & ')} & \\textbf{Held} & \\textbf{Pres.} & \\textbf{Abs.} & \\textbf{\\%} \\\\ \\hline\n`;
+  t += head + `\\endfirsthead\n\\hline\n\\rowcolor{jvmblue!18}\n` + head + `\\endhead\n\\hline \\multicolumn{${ncol}}{r}{\\small\\textit{Continued on next page}} \\\\\n\\endfoot\n\\hline\n\\endlastfoot\n`;
+  R.list.forEach(x => {
+    const cells = x.cells.map((v, i) => {
+      const d = R.days[i];
+      if (v === 'A') return '\\cellcolor{red!18}\\textbf{A}';
+      if (v === 'P') return 'P';
+      if (v === 'H') return '\\cellcolor{gray!45}H';
+      return d.dow === 0 ? '\\cellcolor{gray!30}' : '';
+    });
+    t += `${x.r} & ${texEsc(x.en)} & ${cells.join(' & ')} & ${x.h || ''} & ${x.h ? x.p : ''} & ${x.h ? x.a : ''} & ${x.pct == null ? '' : x.pct.toFixed(1)} \\\\ \\hline\n`;
+  });
+  const pres = R.days.map(d => d.hol ? '' : d.held ? activeRows(c, d.ds).length - d.abs.length : '');
+  const abs = R.days.map(d => d.hol ? '' : d.held ? d.abs.length : '');
+  t += `\\rowcolor{gray!12} \\multicolumn{2}{|r|}{\\textbf{Present per day}} & ${pres.join(' & ')} & \\multicolumn{4}{c|}{} \\\\ \\hline\n`;
+  t += `\\rowcolor{gray!12} \\multicolumn{2}{|r|}{\\textbf{Absent per day}} & ${abs.join(' & ')} & \\multicolumn{4}{c|}{} \\\\ \\hline\n`;
+  t += `\\end{longtable}}\n\n\\vspace{0.2cm}\n\\noindent{\\small\\textbf{Key:} P = present \\quad \\textbf{A} = absent \\quad H = holiday \\quad shaded = Sundays \\quad blank = not taken}\\hfill Class Teacher: \\rule{4.2cm}{0.4pt}\\quad Principal: \\rule{4.2cm}{0.4pt}\n`;
+  return t;
+}
+function texDoc(list, ym){
+  return `% JVM CBSE & FOUNDATION - monthly attendance sheet, made by the Attendance app\n\\documentclass[a4paper,10pt]{article}\n\\usepackage[landscape, margin=0.35in]{geometry}\n\\usepackage{longtable}\n\\usepackage{array}\n\\usepackage{colortbl}\n\\usepackage{xcolor}\n\\usepackage{graphicx}\n\\usepackage{libertine}\n\\definecolor{jvmblue}{HTML}{0C3472}\n\\newcommand{\\logofile}{JVM logo.png}\n\\pagestyle{empty}\n\n\\begin{document}\n\n` + list.map(c => texSheet(c, ym)).join('\n\\clearpage\n\n') + `\n\\end{document}\n`;
+}
+const texName = (c, ym) => `Attendance_${c==='all'?'All_Classes':'Class_'+c}_${ym}.tex`;
+$('texOne').addEventListener('click', () => saveFile(texName(rcls, month), texDoc([rcls], month), true));
+$('texAll').addEventListener('click', () => saveFile(texName('all', month), texDoc(CLASSES, month), true));
+$('texCopy').addEventListener('click', () => {
+  const code = texDoc([rcls], month), ta = document.createElement('textarea'); ta.value = code; ta.style.cssText = 'position:fixed;opacity:0;left:0;top:0'; document.body.appendChild(ta);
+  copyText(code, ta, 'toastR', 'LaTeX code copied. Paste it into main.tex in Overleaf.').finally(() => setTimeout(() => ta.remove(), 3000));
+});
 $('dlOne').addEventListener('click', () => saveFile(fname(rcls, month), toCsv(table(rcls, month))));
 $('dlAll').addEventListener('click', () => saveFile(fname('all', month), CLASSES.map(c => toCsv(table(c, month))).join('\r\n\r\n')));
 $('lowPct').addEventListener('input', () => { LS.set('jvm-att-low', $('lowPct').value); renderReport(); });
@@ -998,7 +1051,7 @@ renderMark();
 route();
 
 // ---------- self-update: the installed app checks GitHub for a newer version ----------
-const APP_V = 27;
+const APP_V = 29;
 let lastVerCheck = 0;
 async function checkUpdate(force){
   if (navigator.onLine === false || location.protocol === 'file:') return;
