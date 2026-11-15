@@ -220,6 +220,9 @@ body.hasbar{padding-bottom:132px}
 body.home{padding-top:calc(env(safe-area-inset-top,0px) + 30px)}
 .home-logo{margin-top:6px;width:min(44vw,180px,24vh)}
 .home{gap:9px}
+
+body{padding-top:calc(env(safe-area-inset-top,0px) + 28px)}
+body.home{padding-top:calc(env(safe-area-inset-top,0px) + 30px)}
 </style>
 
 <style>html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
@@ -240,7 +243,7 @@ body.home{padding-top:calc(env(safe-area-inset-top,0px) + 30px)}
     <p>Developed by <b>Sohit Shaikh</b></p>
     <p>&copy; 2026 JVM CBSE &amp; FOUNDATION, Murud</p>
     <p>All rights reserved</p>
-    <p class="ver" id="ver">App version 31 &middot; 4 Nov 2026</p>
+    <p class="ver" id="ver">App version 32 &middot; 4 Nov 2026</p>
   </footer>
 </section>
 <section id="classScr" class="screen" hidden>
@@ -1067,7 +1070,7 @@ renderMark();
 route();
 
 // ---------- self-update: the installed app checks GitHub for a newer version ----------
-const APP_V = 31;
+const APP_V = 32;
 let lastVerCheck = 0;
 async function checkUpdate(force){
   if (navigator.onLine === false || location.protocol === 'file:') return;
