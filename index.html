@@ -243,7 +243,7 @@ body.home{padding-top:calc(env(safe-area-inset-top,0px) + 30px)}
     <p>Developed by <b>Sohit Shaikh</b></p>
     <p>&copy; 2026 JVM CBSE &amp; FOUNDATION, Murud</p>
     <p>All rights reserved</p>
-    <p class="ver" id="ver">App version 32 &middot; 4 Nov 2026</p>
+    <p class="ver" id="ver">App version 37 &middot; 4 Nov 2026</p>
   </footer>
 </section>
 <section id="classScr" class="screen" hidden>
@@ -292,7 +292,7 @@ body.home{padding-top:calc(env(safe-area-inset-top,0px) + 30px)}
 
   <section aria-label="WhatsApp message" id="msgBox">
     <p class="label">WhatsApp message</p>
-    <div class="opts"><label><input type="checkbox" id="optClass"> Mention the class in the message</label><label><input type="checkbox" id="optWarn" checked> Add a warning for 3 or more days absent in a row</label></div>
+    <div class="opts"><label><input type="checkbox" id="optClass" checked> Mention the class in the message</label><label><input type="checkbox" id="optWarn" checked> Add a warning for 3 or more days absent in a row</label></div>
     <textarea id="msg" aria-label="Generated message" spellcheck="false"></textarea>
     <p class="hint" id="edited" hidden>You edited the message by hand, so it will not change when you change the roll numbers. <a href="#" id="regen">Regenerate it</a></p>
   </section>
@@ -720,41 +720,56 @@ $('copy').addEventListener('click', () => { const was = ensureSaved(); copyText(
 // ---------- LaTeX sheet ----------
 const texEsc = t => String(t).replace(/\\/g,'\\textbackslash{}').replace(/([&%$#_{}])/g,'\\$1').replace(/~/g,'\\textasciitilde{}').replace(/\^/g,'\\textasciicircum{}');
 function texSheet(c, ym){
-  const R = report(c, ym), nd = R.nd, ncol = 2 + nd + 4;
+  const R = report(c, ym), nd = R.nd, ncol = 2 + nd + 4, n = R.list.length;
   const TW = 27.9, fixed = 0.8 + 5.7 + 4 * 1.05, padw = ncol * 0.0846 + (ncol + 1) * 0.0141 + 0.12;
   const dw = ((TW - fixed - padw) / nd).toFixed(3);
   const C = w => `>{\\centering\\arraybackslash}p{${w}cm}|`;
   const spec = '|' + C('0.8') + '>{\\raggedright\\arraybackslash}p{5.7cm}|' + C(dw).repeat(nd) + C('1.05').repeat(4);
   const hol = R.days.filter(x => x.hol).length;
   const wp = R.list.filter(x => x.pct != null), avg = wp.length ? (wp.reduce((a,x) => a + x.pct, 0) / wp.length).toFixed(1) : '--';
-  const dayCell = d => { const col = d.hol ? '\\cellcolor{gray!45}' : d.dow === 0 ? '\\cellcolor{gray!30}' : ''; return `${col}\\shortstack{\\small\\textbf{${d.d}}\\\\[-1.5pt]{\\scriptsize ${'SMTWTFS'[d.dow]}}}`; };
-  let t = '';
-  t += `\\noindent\n\\begin{minipage}[c]{0.17\\textwidth}\n\\IfFileExists{\\logofile}{\\includegraphics[height=2.5cm,keepaspectratio]{\\logofile}}{}\n\\end{minipage}\\hfill\n`;
-  t += `\\begin{minipage}[c]{0.80\\textwidth}\n\\centering\n{\\bfseries\\fontsize{22pt}{25pt}\\selectfont JVM CBSE \\& FOUNDATION}\\\\[1pt]\n{\\fontsize{13pt}{16pt}\\selectfont Murud, Tq.\\ and Dist.\\ Latur}\\\\[3pt]\n`;
-  t += `{\\color{jvmblue}\\bfseries\\fontsize{21pt}{25pt}\\selectfont Class ${c} \\quad|\\quad ${MONTHS[R.m-1]} ${R.y}}\\\\[3pt]\n{\\bfseries\\fontsize{12pt}{14pt}\\selectfont Attendance Sheet}\\\\[3pt]\n`;
-  t += `{\\fontsize{11pt}{14pt}\\selectfont Total students: \\textbf{${R.list.length}} \\quad Days held: \\textbf{${R.held}} \\quad Holidays: \\textbf{${hol}} \\quad Class average: \\textbf{${avg}\\%}}\n\\end{minipage}\n\n\\vspace{0.12cm}\n\\hrule height 0.8pt\n\\vspace{0.12cm}\n\n`;
-  t += `{\\normalsize\\setlength{\\tabcolsep}{1.2pt}\\renewcommand{\\arraystretch}{1.38}\n\\begin{longtable}{${spec}}\n\\hline\n\\rowcolor{jvmblue!18}\n`;
-  const head = `\\textbf{No.} & \\textbf{Student Name} & ${R.days.map(dayCell).join(' & ')} & \\textbf{Held} & \\textbf{Pres.} & \\textbf{Abs.} & \\textbf{\\%} \\\\ \\hline\n`;
-  t += head + `\\endfirsthead\n\\hline\n\\rowcolor{jvmblue!18}\n` + head + `\\endhead\n\\hline \\multicolumn{${ncol}}{r}{\\small\\textit{Continued on next page}} \\\\\n\\endfoot\n\\hline\n\\endlastfoot\n`;
-  R.list.forEach(x => {
+  const band = p => p == null ? '' : p >= 90 ? 'jvmgreen' : p >= 75 ? 'jvmorange!85!black' : 'jvmred';
+  const dayCell = d => { const bg = d.hol ? '\\cellcolor{jvmorange!45}' : d.dow === 0 ? '\\cellcolor{jvmblue!35}' : ''; return `${bg}\\shortstack{\\small\\textbf{${d.d}}\\\\[-1.5pt]{\\scriptsize ${'SMTWTFS'[d.dow]}}}`; };
+  const head = `\\rowcolor{jvmblue!16}\n\\textbf{No.} & \\textbf{Student Name} & ${R.days.map(dayCell).join(' & ')} & \\cellcolor{jvmblue!30}\\textbf{Held} & \\cellcolor{jvmgreen!30}\\textbf{Pres.} & \\cellcolor{jvmred!25}\\textbf{Abs.} & \\cellcolor{jvmorange!35}\\textbf{\\%} \\\\ \\hline\n`;
+  const items = R.list.map(x => {
     const cells = x.cells.map((v, i) => {
       const d = R.days[i];
-      if (v === 'A') return '\\cellcolor{red!18}\\textbf{A}';
-      if (v === 'P') return 'P';
-      if (v === 'H') return '\\cellcolor{gray!45}H';
-      return d.dow === 0 ? '\\cellcolor{gray!30}' : '';
+      if (v === 'A') return '\\cellcolor{jvmred!14}\\textcolor{jvmred}{\\textbf{A}}';
+      if (v === 'P') return '\\textcolor{jvmgreen}{P}';
+      if (v === 'H') return '\\cellcolor{jvmorange!25}\\textcolor{jvmorange!80!black}{H}';
+      return d.dow === 0 ? '\\cellcolor{jvmblue!9}' : '';
     });
-    t += `${x.r} & ${texEsc(x.en)} & ${cells.join(' & ')} & ${x.h || ''} & ${x.h ? x.p : ''} & ${x.h ? x.a : ''} & ${x.pct == null ? '' : x.pct.toFixed(1)} \\\\ \\hline\n`;
+    const pc = x.pct == null ? '' : `\\textcolor{${band(x.pct)}}{\\textbf{${x.pct.toFixed(1)}}}`;
+    return `\\textcolor{jvmblue}{\\textbf{${x.r}}} & ${texEsc(x.en)} & ${cells.join(' & ')} & \\cellcolor{jvmblue!5}${x.h || ''} & \\cellcolor{jvmblue!5}${x.h ? x.p : ''} & \\cellcolor{jvmblue!5}${x.h ? x.a : ''} & \\cellcolor{jvmblue!5}${pc} \\\\ \\hline\n`;
   });
   const pres = R.days.map(d => d.hol ? '' : d.held ? activeRows(c, d.ds).length - d.abs.length : '');
   const abs = R.days.map(d => d.hol ? '' : d.held ? d.abs.length : '');
-  t += `\\rowcolor{gray!12} \\multicolumn{2}{|r|}{\\textbf{Present per day}} & ${pres.join(' & ')} & \\multicolumn{4}{c|}{} \\\\ \\hline\n`;
-  t += `\\rowcolor{gray!12} \\multicolumn{2}{|r|}{\\textbf{Absent per day}} & ${abs.join(' & ')} & \\multicolumn{4}{c|}{} \\\\ \\hline\n`;
-  t += `\\end{longtable}}\n\n\\vspace{0.2cm}\n\\noindent{\\small\\textbf{Key:} P = present \\quad \\textbf{A} = absent \\quad H = holiday \\quad shaded = Sundays \\quad blank = not taken}\\hfill Class Teacher: \\rule{4.2cm}{0.4pt}\\quad Principal: \\rule{4.2cm}{0.4pt}\n`;
+  items.push(`\\rowcolor{jvmgreen!9} \\multicolumn{2}{|r|}{\\textcolor{jvmgreen}{\\textbf{Present per day}}} & ${pres.join(' & ')} & \\multicolumn{4}{c|}{} \\\\ \\hline\n`);
+  items.push(`\\rowcolor{jvmred!7} \\multicolumn{2}{|r|}{\\textcolor{jvmred}{\\textbf{Absent per day}}} & ${abs.join(' & ')} & \\multicolumn{4}{c|}{} \\\\ \\hline\n`);
+  // split the rows evenly over the pages, so the last page is never left with just a few rows
+  const T = items.length;
+  const plan = st => { const rc = (12 * st + 0.4) / 28.35, FIRST = Math.floor(14.1 / rc) - 2, OTHER = Math.floor(17.4 / rc) - 1; let pg = 1; while (FIRST + OTHER * (pg - 1) < T) pg++; return {st, FIRST, OTHER, pg}; };
+  let pl = plan(1.35); [1.15, 1.04].forEach(v => { const alt = plan(v); if (alt.pg < pl.pg) pl = alt; });
+  const pages = pl.pg, FIRST = pl.FIRST, stretch = pl.st;
+  const caps = [FIRST]; for (let k = 1; k < pages; k++) caps.push(pl.OTHER);
+  const sumCap = caps.reduce((x, y) => x + y, 0), counts = []; let left = T;
+  caps.forEach((cp, k) => { const take = k === pages - 1 ? left : Math.min(cp, Math.round(T * cp / sumCap)); counts.push(take); left -= take; });
+  let t = `\\noindent\n\\begin{minipage}[c]{0.15\\textwidth}\n\\IfFileExists{\\logofile}{\\includegraphics[width=3.6cm,keepaspectratio]{\\logofile}}{}\n\\end{minipage}\\hfill\n`;
+  t += `\\begin{minipage}[c]{0.83\\textwidth}\n\\centering\n{\\color{jvmblue}\\bfseries\\fontsize{26pt}{30pt}\\selectfont JVM CBSE \\& FOUNDATION}\\\\[5pt]\n{\\color{black!65}\\fontsize{13pt}{16pt}\\selectfont Murud, Tq.\\ and Dist.\\ Latur}\\\\[7pt]\n{\\color{jvmorange}\\rule{0.55\\linewidth}{1.4pt}}\\\\[7pt]\n`;
+  t += `{\\color{jvmblue}\\bfseries\\fontsize{20pt}{24pt}\\selectfont Class ${c} \\quad|\\quad ${MONTHS[R.m-1]} ${R.y} \\quad|\\quad Attendance Sheet}\\\\[4pt]\n`;
+  t += `{\\fontsize{11pt}{14pt}\\selectfont Total students: \\textcolor{jvmblue}{\\textbf{${n}}} \\quad Days held: \\textcolor{jvmblue}{\\textbf{${R.held}}} \\quad Holidays: \\textcolor{jvmorange!85!black}{\\textbf{${hol}}} \\quad Class average: \\textcolor{${band(avg === '--' ? null : +avg) || 'jvmblue'}}{\\textbf{${avg}\\%}}}\n\\end{minipage}\n\n\\vspace{0.1cm}\n\\noindent{\\color{jvmblue}\\rule{\\linewidth}{1.1pt}}\n\\vspace{0.15cm}\n\n`;
+  let pos = 0;
+  counts.forEach((cnt, k) => {
+    if (k > 0) t += `\\noindent{\\bfseries\\color{jvmblue}\\large Class ${c} \\ | \\ ${MONTHS[R.m-1]} ${R.y}}\\hfill{\\small Page ${k+1} of ${pages}}\\par\\vspace{3pt}\n`;
+    t += `\\noindent{\\normalsize\\setlength{\\tabcolsep}{1.2pt}\\renewcommand{\\arraystretch}{${stretch}}\\arrayrulecolor{jvmblue!35}\n\\begin{tabular}{${spec}}\n\\hline\n${head}`;
+    t += items.slice(pos, pos + cnt).join(''); pos += cnt;
+    t += `\\end{tabular}}\n`;
+    if (k < pages - 1) t += `\n\\vspace{2pt}\\hfill{\\small\\textit{Continued on next page}}\n\\clearpage\n\n`;
+  });
+  t += `\n\\vspace{0.25cm}\n\\noindent{\\small\\textbf{Key:} \\textcolor{jvmgreen}{\\textbf{P}} = present \\quad \\textcolor{jvmred}{\\textbf{A}} = absent \\quad \\textcolor{jvmorange!80!black}{\\textbf{H}} = holiday \\quad shaded column = Sunday \\quad blank = attendance not taken \\quad \\%: \\textcolor{jvmgreen}{90 and above} \\ \\textcolor{jvmorange!85!black}{75 to 90} \\ \\textcolor{jvmred}{below 75}}\n`;
   return t;
 }
 function texDoc(list, ym){
-  return `% JVM CBSE & FOUNDATION - monthly attendance sheet, made by the Attendance app\n\\documentclass[a4paper,10pt]{article}\n\\usepackage[landscape, margin=0.35in]{geometry}\n\\usepackage{longtable}\n\\usepackage{array}\n\\usepackage{colortbl}\n\\usepackage{xcolor}\n\\usepackage{graphicx}\n\\usepackage{libertine}\n\\definecolor{jvmblue}{HTML}{0C3472}\n\\newcommand{\\logofile}{JVM logo.png}\n\\pagestyle{empty}\n\n\\begin{document}\n\n` + list.map(c => texSheet(c, ym)).join('\n\\clearpage\n\n') + `\n\\end{document}\n`;
+  return `% JVM CBSE & FOUNDATION - monthly attendance sheet, made by the Attendance app\n% Needs "JVM logo.png" in the same Overleaf project (shown in the header and as a faint watermark)\n\\documentclass[a4paper,10pt]{article}\n\\usepackage[landscape, margin=0.35in]{geometry}\n\\usepackage{longtable}\n\\usepackage{array}\n\\usepackage{colortbl}\n\\usepackage{xcolor}\n\\usepackage{graphicx}\n\\usepackage{eso-pic}\n\\usepackage{transparent}\n\\usepackage{libertine}\n\\definecolor{jvmblue}{HTML}{0C3472}\n\\definecolor{jvmorange}{HTML}{F26A1B}\n\\definecolor{jvmgreen}{HTML}{1E7B4A}\n\\definecolor{jvmred}{HTML}{C62828}\n\\newcommand{\\logofile}{JVM logo.png}\n\\pagestyle{empty}\n\\AddToShipoutPictureBG{\\AtPageCenter{\\makebox(0,0){\\IfFileExists{\\logofile}{\\transparent{0.04}\\includegraphics[width=17cm,keepaspectratio]{\\logofile}}{}}}}\n\n\\begin{document}\n\n` + list.map(c => texSheet(c, ym)).join('\n\\clearpage\n\n') + `\n\\end{document}\n`;
 }
 const texName = (c, ym) => `Attendance_${c==='all'?'All_Classes':'Class_'+c}_${ym}.tex`;
 $('texOne').addEventListener('click', () => saveFile(texName(rcls, month), texDoc([rcls], month), true));
@@ -1070,7 +1085,7 @@ renderMark();
 route();
 
 // ---------- self-update: the installed app checks GitHub for a newer version ----------
-const APP_V = 32;
+const APP_V = 37;
 let lastVerCheck = 0;
 async function checkUpdate(force){
   if (navigator.onLine === false || location.protocol === 'file:') return;
